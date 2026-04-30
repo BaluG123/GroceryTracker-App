@@ -1,0 +1,18 @@
+{
+  "app_name": "કરિયાણા ટ્રેકર",
+  "greeting_morning": "સુપ્રભાત",
+  "login": "લોગિન",
+  "register": "નોંધણી",
+  "home": "હોમ",
+  "items": "વસ્તુઓ",
+  "add": "ઉમેરો",
+  "reports": "અહેવાલ",
+  "profile": "પ્રોફાઇલ",
+  "settings": "સેટિંગ્સ",
+  "confirm": "પુષ્ટિ કરો",
+  "cancel": "રદ કરો",
+  "delete": "કાઢી નાખો",
+  "save": "સાચવો",
+  "all": "બધા",
+  "offline_banner": "તમે ઑફલાઇન છો"
+}

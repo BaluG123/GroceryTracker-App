@@ -1,0 +1,20 @@
+{
+  "app_name": "ഗ്രോസറി ട്രാക്കർ",
+  "greeting_morning": "സുപ്രഭാതം",
+  "greeting_afternoon": "ശുഭ ഉച്ച",
+  "greeting_evening": "ശുഭ സന്ധ്യ",
+  "login": "ലോഗിൻ",
+  "register": "രജിസ്റ്റർ",
+  "home": "ഹോം",
+  "items": "ഇനങ്ങൾ",
+  "add": "ചേർക്കുക",
+  "reports": "റിപ്പോർട്ടുകൾ",
+  "profile": "പ്രൊഫൈൽ",
+  "settings": "ക്രമീകരണങ്ങൾ",
+  "confirm": "സ്ഥിരീകരിക്കുക",
+  "cancel": "റദ്ദാക്കുക",
+  "delete": "ഇല്ലാതാക്കുക",
+  "save": "സേവ്",
+  "all": "എല്ലാം",
+  "offline_banner": "നിങ്ങൾ ഓഫ്‌ലൈനിലാണ്"
+}

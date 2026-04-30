@@ -1,0 +1,18 @@
+{
+  "app_name": "মুদি ট্র্যাকার",
+  "greeting_morning": "সুপ্রভাত",
+  "login": "লগইন",
+  "register": "নিবন্ধন",
+  "home": "হোম",
+  "items": "পণ্য",
+  "add": "যোগ করুন",
+  "reports": "রিপোর্ট",
+  "profile": "প্রোফাইল",
+  "settings": "সেটিংস",
+  "confirm": "নিশ্চিত",
+  "cancel": "বাতিল",
+  "delete": "মুছুন",
+  "save": "সংরক্ষণ",
+  "all": "সব",
+  "offline_banner": "আপনি অফলাইনে আছেন"
+}

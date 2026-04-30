@@ -1,0 +1,18 @@
+{
+  "app_name": "گروسری ٹریکر",
+  "greeting_morning": "صبح بخیر",
+  "login": "لاگ ان",
+  "register": "رجسٹر",
+  "home": "ہوم",
+  "items": "اشیاء",
+  "add": "شامل کریں",
+  "reports": "رپورٹس",
+  "profile": "پروفائل",
+  "settings": "ترتیبات",
+  "confirm": "تصدیق",
+  "cancel": "منسوخ",
+  "delete": "حذف کریں",
+  "save": "محفوظ کریں",
+  "all": "سب",
+  "offline_banner": "آپ آف لائن ہیں"
+}

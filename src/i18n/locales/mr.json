@@ -1,0 +1,20 @@
+{
+  "app_name": "किराणा ट्रॅकर",
+  "greeting_morning": "सुप्रभात",
+  "greeting_afternoon": "शुभ दुपार",
+  "greeting_evening": "शुभ संध्याकाळ",
+  "login": "लॉगिन",
+  "register": "नोंदणी",
+  "home": "मुखपृष्ठ",
+  "items": "वस्तू",
+  "add": "जोडा",
+  "reports": "अहवाल",
+  "profile": "प्रोफाइल",
+  "settings": "सेटिंग्ज",
+  "confirm": "पुष्टी करा",
+  "cancel": "रद्द करा",
+  "delete": "हटवा",
+  "save": "जतन करा",
+  "all": "सर्व",
+  "offline_banner": "तुम्ही ऑफलाइन आहात"
+}
