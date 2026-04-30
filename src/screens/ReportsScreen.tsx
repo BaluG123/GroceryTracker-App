@@ -12,6 +12,7 @@ import {
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store/index';
 import {
   fetchMonthlySummary,
   fetchItemFrequency,
@@ -41,9 +42,8 @@ const ReportsScreen: React.FC = () => {
     isLoading,
     selectedMonth,
     selectedYear,
-  } = useAppSelector(state => state.reports);
-  const { currencyCode } = useAppSelector(state => state.settings);
-  const theme = useAppSelector(state => state.settings.theme);
+  } = useAppSelector((state: RootState) => state.reports);
+  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [activeTab, setActiveTab] = useState<'monthly' | 'items'>('monthly');
@@ -85,20 +85,20 @@ const ReportsScreen: React.FC = () => {
   // Line chart: daily spending trend
   const dailyData = monthlySummary?.daily_breakdown || [];
   const lineLabels = dailyData
-    .filter((_, i) => i % 3 === 0)
-    .map(d => new Date(d.date).getDate().toString());
-  const lineValues = dailyData.map(d => d.total_spent || 0);
+    .filter((_: any, i: number) => i % 3 === 0)
+    .map((d: any) => new Date(d.date).getDate().toString());
+  const lineValues = dailyData.map((d: any) => d.total_spent || 0);
 
   // Bar chart: top items
   const topItems = (itemFrequency?.items || [])
-    .sort((a, b) => b.total_spent - a.total_spent)
+    .sort((a: any, b: any) => b.total_spent - a.total_spent)
     .slice(0, 6);
-  const barLabels = topItems.map(i => i.item_name.substring(0, 6));
-  const barValues = topItems.map(i => i.total_spent);
+  const barLabels = topItems.map((i: any) => i.item_name.substring(0, 6));
+  const barValues = topItems.map((i: any) => i.total_spent);
 
   // Pie chart: category breakdown
   const categoryMap: Record<string, number> = {};
-  itemFrequency?.items?.forEach(item => {
+  itemFrequency?.items?.forEach((item: any) => {
     const cat = item.category || 'other';
     categoryMap[cat] = (categoryMap[cat] || 0) + item.total_spent;
   });
@@ -118,7 +118,7 @@ const ReportsScreen: React.FC = () => {
       `💰 Total Spent: ${formatPrice(totalSpent, currencyCode)}\n` +
       `🛒 Total Purchases: ${totalPurchases}\n\n` +
       `📦 Top Items:\n` +
-      topItems.map((item, i) => `${i + 1}. ${item.item_name} — ${formatPrice(item.total_spent, currencyCode)} (${item.times_bought}×)`).join('\n');
+      topItems.map((item: any, i: number) => `${i + 1}. ${item.item_name} — ${formatPrice(item.total_spent, currencyCode)} (${item.times_bought}×)`).join('\n');
 
     try {
       await Share.share({ message: reportText });
@@ -333,7 +333,7 @@ const ReportsScreen: React.FC = () => {
                   <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
                     🏆 {t('top_items')}
                   </Text>
-                  {topItems.map((item, index) => (
+                  {topItems.map((item: any, index: number) => (
                     <View key={item.item_name} style={styles.topItemRow}>
                       <View style={styles.topItemLeft}>
                         <Text style={[styles.topItemRank, { color: colors.primary }]}>

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { purchasesApi } from '../../api/api';
 import {
   Purchase,
@@ -82,17 +82,17 @@ const purchasesSlice = createSlice({
   name: 'purchases',
   initialState,
   reducers: {
-    clearPurchasesError: state => {
+    clearPurchasesError: (state) => {
       state.error = null;
     },
-    setFilters: (state, action) => {
+    setFilters: (state, action: PayloadAction<PurchaseFilters>) => {
       state.filters = action.payload;
     },
     resetPurchases: () => initialState,
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
-      .addCase(fetchPurchases.pending, state => {
+      .addCase(fetchPurchases.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
@@ -112,11 +112,11 @@ const purchasesSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      .addCase(createPurchase.pending, state => {
+      .addCase(createPurchase.pending, (state) => {
         state.isCreating = true;
         state.error = null;
       })
-      .addCase(createPurchase.fulfilled, (state, action) => {
+      .addCase(createPurchase.fulfilled, (state, action: PayloadAction<Purchase>) => {
         state.isCreating = false;
         state.purchases.unshift(action.payload);
         state.totalCount += 1;
@@ -125,16 +125,16 @@ const purchasesSlice = createSlice({
         state.isCreating = false;
         state.error = action.payload as string;
       })
-      .addCase(updatePurchase.fulfilled, (state, action) => {
+      .addCase(updatePurchase.fulfilled, (state, action: PayloadAction<Purchase>) => {
         const index = state.purchases.findIndex(
-          p => p.id === action.payload.id,
+          (p: Purchase) => p.id === action.payload.id,
         );
         if (index !== -1) {
           state.purchases[index] = action.payload;
         }
       })
-      .addCase(deletePurchase.fulfilled, (state, action) => {
-        state.purchases = state.purchases.filter(p => p.id !== action.payload);
+      .addCase(deletePurchase.fulfilled, (state, action: PayloadAction<number>) => {
+        state.purchases = state.purchases.filter((p: Purchase) => p.id !== action.payload);
         state.totalCount -= 1;
       });
   },

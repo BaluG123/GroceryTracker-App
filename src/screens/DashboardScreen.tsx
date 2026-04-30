@@ -11,6 +11,7 @@ import {
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store/index';
 import { fetchMonthlySummary, fetchItemFrequency } from '../store/slices/reportsSlice';
 import { fetchPurchases } from '../store/slices/purchasesSlice';
 import { darkColors, lightColors } from '../theme/colors';
@@ -28,11 +29,10 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const DashboardScreen: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector(state => state.auth);
-  const { monthlySummary, itemFrequency, isLoading } = useAppSelector(state => state.reports);
-  const { purchases } = useAppSelector(state => state.purchases);
-  const { currencyCode } = useAppSelector(state => state.settings);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { user } = useAppSelector((state: RootState) => state.auth);
+  const { monthlySummary, itemFrequency, isLoading } = useAppSelector((state: RootState) => state.reports);
+  const { purchases } = useAppSelector((state: RootState) => state.purchases);
+  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [refreshing, setRefreshing] = useState(false);
 
@@ -60,28 +60,28 @@ const DashboardScreen: React.FC = () => {
 
   // Most bought item
   const mostBought = monthlySummary?.item_breakdown?.reduce(
-    (max, item) => (item.times_bought > (max?.times_bought || 0) ? item : max),
+    (max: any, item: any) => (item.times_bought > (max?.times_bought || 0) ? item : max),
     monthlySummary?.item_breakdown?.[0],
   );
 
   // Today's spending
   const today = new Date().toISOString().split('T')[0];
   const todayBreakdown = monthlySummary?.daily_breakdown?.find(
-    d => d.date === today,
+    (d: any) => d.date === today,
   );
   const todaySpent = todayBreakdown?.total_spent || 0;
 
   // Line chart data
   const chartData = monthlySummary?.daily_breakdown?.slice(-14) || [];
-  const lineLabels = chartData.map(d => {
+  const lineLabels = chartData.map((d: any) => {
     const day = new Date(d.date).getDate();
     return day.toString();
   });
-  const lineValues = chartData.map(d => d.total_spent || 0);
+  const lineValues = chartData.map((d: any) => d.total_spent || 0);
 
   // Pie chart data
   const categoryMap: Record<string, number> = {};
-  itemFrequency?.items?.forEach(item => {
+  itemFrequency?.items?.forEach((item: any) => {
     const cat = item.category || 'other';
     categoryMap[cat] = (categoryMap[cat] || 0) + item.total_spent;
   });
@@ -201,7 +201,7 @@ const DashboardScreen: React.FC = () => {
             </Text>
             <LineChart
               data={{
-                labels: lineLabels.filter((_, i) => i % 2 === 0),
+                labels: lineLabels.filter((_: any, i: number) => i % 2 === 0),
                 datasets: [{ data: lineValues.length > 0 ? lineValues : [0] }],
               }}
               width={SCREEN_WIDTH - 64}
@@ -265,7 +265,7 @@ const DashboardScreen: React.FC = () => {
             </Text>
           </View>
         ) : (
-          recentPurchases.map(purchase => (
+          recentPurchases.map((purchase: any) => (
             <View
               key={purchase.id}
               style={[styles.purchaseItem, { backgroundColor: colors.card }]}

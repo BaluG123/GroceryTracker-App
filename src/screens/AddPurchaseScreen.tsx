@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store';
 import { fetchItems } from '../store/slices/itemsSlice';
 import { createPurchase } from '../store/slices/purchasesSlice';
 import { darkColors, lightColors } from '../theme/colors';
@@ -27,10 +28,9 @@ import { GroceryItem } from '../types';
 const AddPurchaseScreen: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { items } = useAppSelector(state => state.items);
-  const { isCreating } = useAppSelector(state => state.purchases);
-  const { currencyCode } = useAppSelector(state => state.settings);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { items } = useAppSelector((state: RootState) => state.items);
+  const { isCreating } = useAppSelector((state: RootState) => state.purchases);
+  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [selectedItem, setSelectedItem] = useState<GroceryItem | null>(null);

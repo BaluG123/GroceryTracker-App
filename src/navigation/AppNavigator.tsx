@@ -3,6 +3,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store';
 import { checkStoredAuth } from '../store/slices/authSlice';
 import { loadSettings } from '../store/slices/settingsSlice';
 import { darkColors, lightColors } from '../theme/colors';
@@ -13,8 +14,8 @@ const RootStack = createStackNavigator();
 
 const AppNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { token, isAuthChecked } = useAppSelector(state => state.auth);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { token, isAuthChecked } = useAppSelector((state: RootState) => state.auth);
+  const theme = useAppSelector((state: RootState) => state.settings.theme);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   useEffect(() => {

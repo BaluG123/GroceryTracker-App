@@ -112,10 +112,10 @@ const authSlice = createSlice({
       state.error = null;
     },
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
       // Check stored auth
-      .addCase(checkStoredAuth.pending, state => {
+      .addCase(checkStoredAuth.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(checkStoredAuth.fulfilled, (state, action) => {
@@ -124,12 +124,12 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.user = action.payload.user;
       })
-      .addCase(checkStoredAuth.rejected, state => {
+      .addCase(checkStoredAuth.rejected, (state) => {
         state.isLoading = false;
         state.isAuthChecked = true;
       })
       // Login
-      .addCase(login.pending, state => {
+      .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
@@ -143,7 +143,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       // Register
-      .addCase(register.pending, state => {
+      .addCase(register.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
@@ -157,7 +157,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       // Logout
-      .addCase(logout.fulfilled, state => {
+      .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.token = null;
       })

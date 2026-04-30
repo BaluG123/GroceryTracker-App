@@ -57,11 +57,11 @@ const settingsSlice = createSlice({
       state.language = action.payload;
       saveLanguage(action.payload);
     },
-    toggleNotifications: state => {
+    toggleNotifications: (state) => {
       state.notificationsEnabled = !state.notificationsEnabled;
     },
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder.addCase(loadSettings.fulfilled, (state, action) => {
       state.theme = action.payload.theme;
       state.currencyCode = action.payload.currencyCode;

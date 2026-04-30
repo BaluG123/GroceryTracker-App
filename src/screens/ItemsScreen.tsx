@@ -17,6 +17,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store';
 import { fetchItems, createItem, deleteItem, updateItem } from '../store/slices/itemsSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -51,9 +52,8 @@ const UNIT_TYPES: UnitType[] = [
 const ItemsScreen: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { items, isLoading, isCreating } = useAppSelector(state => state.items);
-  const { currencyCode } = useAppSelector(state => state.settings);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { items, isLoading, isCreating } = useAppSelector((state: RootState) => state.items);
+  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [search, setSearch] = useState('');

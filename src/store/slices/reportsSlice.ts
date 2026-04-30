@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { reportsApi } from '../../api/api';
 import {
   MonthlySummary,
@@ -92,20 +92,20 @@ const reportsSlice = createSlice({
   name: 'reports',
   initialState,
   reducers: {
-    setReportPeriod: (state, action) => {
+    setReportPeriod: (state, action: PayloadAction<{ month: number; year: number }>) => {
       state.selectedMonth = action.payload.month;
       state.selectedYear = action.payload.year;
     },
     clearReports: () => initialState,
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
       // Monthly summary
-      .addCase(fetchMonthlySummary.pending, state => {
+      .addCase(fetchMonthlySummary.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchMonthlySummary.fulfilled, (state, action) => {
+      .addCase(fetchMonthlySummary.fulfilled, (state, action: PayloadAction<MonthlySummary>) => {
         state.isLoading = false;
         state.monthlySummary = action.payload;
       })
@@ -114,11 +114,11 @@ const reportsSlice = createSlice({
         state.error = action.payload as string;
       })
       // Item frequency
-      .addCase(fetchItemFrequency.fulfilled, (state, action) => {
+      .addCase(fetchItemFrequency.fulfilled, (state, action: PayloadAction<ItemFrequencyReport>) => {
         state.itemFrequency = action.payload;
       })
       // Daily breakdown
-      .addCase(fetchDailyBreakdown.fulfilled, (state, action) => {
+      .addCase(fetchDailyBreakdown.fulfilled, (state, action: PayloadAction<DailyBreakdownMonth>) => {
         state.dailyBreakdown = action.payload;
       });
   },

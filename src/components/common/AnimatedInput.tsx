@@ -9,6 +9,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
+import { RootState } from '../../store';
 import { darkColors, lightColors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius } from '../../theme/spacing';
@@ -30,15 +31,16 @@ const AnimatedInput: React.FC<AnimatedInputProps> = ({
   onBlur,
   ...props
 }) => {
-  const theme = useAppSelector(state => state.settings.theme);
+  const theme = useAppSelector((state: RootState) => state.settings.theme);
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const labelAnim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
+    const shouldFloat = isFocused || (value !== undefined && value.length > 0);
     Animated.timing(labelAnim, {
-      toValue: isFocused || (value && value.length > 0) ? 1 : 0,
+      toValue: shouldFloat ? 1 : 0,
       duration: 200,
       useNativeDriver: false,
     }).start();

@@ -14,6 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../navigation/types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store';
 import { login, clearError } from '../store/slices/authSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -27,8 +28,8 @@ const LoginScreen: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector(state => state.auth);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { isLoading, error } = useAppSelector((state: RootState) => state.auth);
+  const theme = useAppSelector((state: RootState) => state.settings.theme);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [username, setUsername] = useState('');

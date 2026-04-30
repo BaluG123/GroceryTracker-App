@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
+import { RootState } from '../../store';
 import { darkColors, lightColors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius } from '../../theme/spacing';
@@ -43,7 +44,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
   cancelText = 'Cancel',
   showCancel = true,
 }) => {
-  const theme = useAppSelector(state => state.settings.theme);
+  const theme = useAppSelector((state: RootState) => state.settings.theme);
   const colors = theme === 'dark' ? darkColors : lightColors;
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;

@@ -12,6 +12,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { RootState } from '../store/index';
 import { fetchPurchases, deletePurchase } from '../store/slices/purchasesSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -29,10 +30,9 @@ const PurchaseHistoryScreen: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { purchases, isLoading, hasMore, currentPage } = useAppSelector(
-    state => state.purchases,
+    (state: RootState) => state.purchases,
   );
-  const { currencyCode } = useAppSelector(state => state.settings);
-  const theme = useAppSelector(state => state.settings.theme);
+  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -75,7 +75,7 @@ const PurchaseHistoryScreen: React.FC = () => {
 
   // Group purchases by date
   const groupedPurchases = purchases.reduce<Record<string, Purchase[]>>(
-    (groups, purchase) => {
+    (groups: Record<string, Purchase[]>, purchase: Purchase) => {
       const date = purchase.purchased_at.substring(0, 10);
       if (!groups[date]) {
         groups[date] = [];
@@ -88,9 +88,9 @@ const PurchaseHistoryScreen: React.FC = () => {
 
   const sections = Object.entries(groupedPurchases)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([date, data]) => ({
+    .map(([date, data]: [string, any]) => ({
       title: date,
-      dayTotal: data.reduce((sum, p) => sum + parseFloat(p.total_price), 0),
+      dayTotal: data.reduce((sum: number, p: Purchase) => sum + parseFloat(p.total_price), 0),
       data,
     }));
 

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { itemsApi } from '../../api/api';
 import { GroceryItem, CreateItemPayload, UpdateItemPayload } from '../../types';
 
@@ -75,15 +75,15 @@ const itemsSlice = createSlice({
   name: 'items',
   initialState,
   reducers: {
-    clearItemsError: state => {
+    clearItemsError: (state) => {
       state.error = null;
     },
     resetItems: () => initialState,
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
       // Fetch items
-      .addCase(fetchItems.pending, state => {
+      .addCase(fetchItems.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
@@ -104,11 +104,11 @@ const itemsSlice = createSlice({
         state.error = action.payload as string;
       })
       // Create item
-      .addCase(createItem.pending, state => {
+      .addCase(createItem.pending, (state) => {
         state.isCreating = true;
         state.error = null;
       })
-      .addCase(createItem.fulfilled, (state, action) => {
+      .addCase(createItem.fulfilled, (state, action: PayloadAction<GroceryItem>) => {
         state.isCreating = false;
         state.items.unshift(action.payload);
         state.totalCount += 1;
@@ -118,15 +118,15 @@ const itemsSlice = createSlice({
         state.error = action.payload as string;
       })
       // Update item
-      .addCase(updateItem.fulfilled, (state, action) => {
-        const index = state.items.findIndex(i => i.id === action.payload.id);
+      .addCase(updateItem.fulfilled, (state, action: PayloadAction<GroceryItem>) => {
+        const index = state.items.findIndex((i: GroceryItem) => i.id === action.payload.id);
         if (index !== -1) {
           state.items[index] = action.payload;
         }
       })
       // Delete item
-      .addCase(deleteItem.fulfilled, (state, action) => {
-        state.items = state.items.filter(i => i.id !== action.payload);
+      .addCase(deleteItem.fulfilled, (state, action: PayloadAction<number>) => {
+        state.items = state.items.filter((i: GroceryItem) => i.id !== action.payload);
         state.totalCount -= 1;
       });
   },
