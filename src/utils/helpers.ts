@@ -66,6 +66,18 @@ const categoryMetadata: Record<string, { label: string; icon: string; color: str
   household: { label: 'Household', icon: '🏠', color: '#8B5CF6' },
 };
 
+const categoryAliases: Record<string, string> = {
+  grocery: 'groceries',
+  groceries: 'groceries',
+  food: 'dining',
+  restaurant: 'dining',
+  restaurants: 'dining',
+  lifestyle: 'lifestyle',
+  life_style: 'lifestyle',
+  personal: 'lifestyle',
+  entertainment: 'lifestyle',
+};
+
 export const unitTypeLabels: Record<string, string> = Object.fromEntries(
   Object.entries(unitMetadata).map(([key, value]) => [key, value.label]),
 );
@@ -86,17 +98,24 @@ export const categoryColors: Record<string, string> = Object.fromEntries(
   Object.entries(categoryMetadata).map(([key, value]) => [key, value.color]),
 );
 
+export const normalizeCategory = (category?: string | null): string => {
+  const key = (category || 'other').trim().toLowerCase().replace(/\s+/g, '_');
+  return categoryAliases[key] || (categoryMetadata[key] ? key : 'other');
+};
+
 export const getUnitLabel = (unit: string): string =>
   unitTypeLabels[unit] || unit.charAt(0).toUpperCase() + unit.slice(1);
 
 export const getUnitIcon = (unit: string): string => unitTypeIcons[unit] || '📋';
 
-export const getCategoryLabel = (category: string): string =>
-  categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1);
+export const getCategoryLabel = (category: string): string => {
+  const normalized = normalizeCategory(category);
+  return categoryLabels[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
 
-export const getCategoryIcon = (category: string): string => categoryIcons[category] || '📋';
+export const getCategoryIcon = (category: string): string => categoryIcons[normalizeCategory(category)] || '📋';
 
-export const getCategoryColor = (category: string): string => categoryColors[category] || '#8B8BA7';
+export const getCategoryColor = (category: string): string => categoryColors[normalizeCategory(category)] || '#8B8BA7';
 
 // Password strength
 export const getPasswordStrength = (

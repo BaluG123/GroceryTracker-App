@@ -24,7 +24,7 @@ import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import { formatPrice } from '../utils/currency';
 import { getMonthName, getCurrentMonth, getCurrentYear } from '../utils/date';
-import { categoryColors } from '../utils/helpers';
+import { getCategoryColor, getCategoryLabel, normalizeCategory } from '../utils/helpers';
 import { CardSkeleton } from '../components/common/SkeletonLoader';
 import EmptyState from '../components/common/EmptyState';
 import OfflineBanner from '../components/common/OfflineBanner';
@@ -99,15 +99,16 @@ const ReportsScreen: React.FC = () => {
   // Pie chart: category breakdown
   const categoryMap: Record<string, number> = {};
   itemFrequency?.items?.forEach((item: any) => {
-    const cat = item.category || 'other';
-    categoryMap[cat] = (categoryMap[cat] || 0) + item.total_spent;
+    const cat = normalizeCategory(item.category);
+    const total = Number.parseFloat(String(item.total_spent || 0)) || 0;
+    categoryMap[cat] = (categoryMap[cat] || 0) + total;
   });
   const pieData = Object.entries(categoryMap)
     .sort(([, a], [, b]) => b - a)
     .map(([key, value]) => ({
-      name: t(key),
+      name: getCategoryLabel(key),
       amount: value,
-      color: categoryColors[key as Category] || '#8B8BA7',
+      color: getCategoryColor(key),
       legendFontColor: colors.textSecondary,
       legendFontSize: 11,
     }));
