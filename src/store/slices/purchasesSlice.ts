@@ -35,6 +35,42 @@ const initialState: PurchasesState = {
   filters: {},
 };
 
+const parseAmount = (value: string | number | undefined | null): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  return Number.parseFloat(value || '0') || 0;
+};
+
+const formatAmount = (value: string | number | undefined | null): string =>
+  parseAmount(value).toFixed(2);
+
+const normalizePurchase = (
+  purchase: Partial<Purchase>,
+  fallback?: CreatePurchasePayload | UpdatePurchasePayload,
+): Purchase => {
+  const quantity = fallback?.quantity ?? parseAmount(purchase.quantity);
+  const pricePerUnit = fallback?.price_per_unit ?? parseAmount(purchase.price_per_unit);
+  const totalPrice = purchase.total_price ?? quantity * pricePerUnit;
+
+  return {
+    id: purchase.id ?? Date.now(),
+    item: purchase.item ?? fallback?.item ?? null,
+    item_name: purchase.item_name || fallback?.item_name || 'Expense',
+    item_unit_type: purchase.item_unit_type || fallback?.item_unit_type || 'unit',
+    item_category: purchase.item_category || fallback?.item_category || 'other',
+    quantity: formatAmount(purchase.quantity ?? quantity),
+    price_per_unit: formatAmount(purchase.price_per_unit ?? pricePerUnit),
+    total_price: formatAmount(totalPrice),
+    purchased_at: purchase.purchased_at || fallback?.purchased_at || new Date().toISOString(),
+    notes: purchase.notes || fallback?.notes || '',
+    merchant_name: purchase.merchant_name || fallback?.merchant_name || '',
+    payment_method: purchase.payment_method || fallback?.payment_method || '',
+    currency_code: purchase.currency_code || fallback?.currency_code || 'INR',
+    location: purchase.location || fallback?.location || '',
+  };
+};
+
 export const fetchPurchases = createAsyncThunk(
   'purchases/fetchAll',
   async (filters: PurchaseFilters = {}, { rejectWithValue, getState }) => {
@@ -65,7 +101,7 @@ export const createPurchase = createAsyncThunk(
       const state = getState() as any;
       return state.auth.mode === 'guest'
         ? await createGuestPurchase(payload)
-        : await purchasesApi.create(payload);
+        : normalizePurchase(await purchasesApi.create(payload), payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create purchase');
     }
@@ -82,7 +118,7 @@ export const updatePurchase = createAsyncThunk(
       const state = getState() as any;
       return state.auth.mode === 'guest'
         ? await updateGuestPurchase(id, payload)
-        : await purchasesApi.update(id, payload);
+        : normalizePurchase(await purchasesApi.update(id, payload), payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update purchase');
     }

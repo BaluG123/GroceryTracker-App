@@ -15,12 +15,14 @@ import Toast from 'react-native-toast-message';
 import GradientButton from '../components/common/GradientButton';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchItems } from '../store/slices/itemsSlice';
-import { createPurchase } from '../store/slices/purchasesSlice';
+import { createPurchase, fetchPurchases } from '../store/slices/purchasesSlice';
+import { fetchItemFrequency, fetchMonthlySummary } from '../store/slices/reportsSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import { borderRadius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { GroceryItem } from '../types';
 import { formatPrice } from '../utils/currency';
+import { getCurrentMonth, getCurrentYear } from '../utils/date';
 import {
   expenseCategories,
   expenseUnits,
@@ -132,6 +134,11 @@ const AddPurchaseScreen: React.FC = () => {
         text2: `${itemName.trim()} • ${formatPrice(totalPrice, currencyCode)}`,
       });
       resetForm();
+      const month = getCurrentMonth();
+      const year = getCurrentYear();
+      dispatch(fetchPurchases({ month, year, page: 1 }));
+      dispatch(fetchMonthlySummary({ month, year }));
+      dispatch(fetchItemFrequency({ month, year }));
     } catch (error: any) {
       Toast.show({ type: 'error', text1: 'Save failed', text2: String(error) });
     }
