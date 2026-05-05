@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 
 import AnimatedInput from '../components/common/AnimatedInput';
@@ -38,6 +39,7 @@ import { currencies } from '../utils/currency';
 type SecurityModal = 'changePassword' | 'resetSetup' | null;
 
 const ProfileScreen: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { user, mode } = useAppSelector(state => state.auth);
   const { totalCount: totalItems } = useAppSelector(state => state.items);
@@ -69,7 +71,7 @@ const ProfileScreen: React.FC = () => {
       dispatch(forceLogout());
       dispatch(logout());
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Exit failed', text2: String(error) });
+      Toast.show({ type: 'error', text1: t('exit_failed'), text2: String(error) });
     }
   };
 
@@ -82,13 +84,13 @@ const ProfileScreen: React.FC = () => {
           confirm_password: confirmPassword,
         }),
       ).unwrap();
-      Toast.show({ type: 'success', text1: 'Password changed', text2: 'Your account password was updated.' });
+      Toast.show({ type: 'success', text1: t('password_changed'), text2: t('password_changed_desc') });
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setSecurityModal(null);
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Change failed', text2: String(error) });
+      Toast.show({ type: 'error', text1: t('change_failed'), text2: String(error) });
     }
   };
 
@@ -100,11 +102,11 @@ const ProfileScreen: React.FC = () => {
           reset_answer: resetAnswer.trim(),
         }),
       ).unwrap();
-      Toast.show({ type: 'success', text1: 'Reset saved', text2: 'Your local reset prompt is ready.' });
+      Toast.show({ type: 'success', text1: t('reset_saved'), text2: t('reset_saved_desc') });
       setResetAnswer('');
       setSecurityModal(null);
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Save failed', text2: String(error) });
+      Toast.show({ type: 'error', text1: t('save_failed'), text2: String(error) });
     }
   };
 
@@ -112,7 +114,7 @@ const ProfileScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.title, { color: colors.textPrimary, paddingTop: spacing.massive }]}>Profile</Text>
+        <Text style={[styles.title, { color: colors.textPrimary, paddingTop: spacing.massive }]}>{t('profile')}</Text>
 
         <View style={[styles.heroCard, { backgroundColor: colors.card }]}>
           <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
@@ -121,24 +123,24 @@ const ProfileScreen: React.FC = () => {
             </Text>
           </View>
           <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {mode === 'guest' ? 'Guest Mode' : `${user?.first_name || ''} ${user?.last_name || ''}`.trim()}
+            {mode === 'guest' ? t('guest_mode') : `${user?.first_name || ''} ${user?.last_name || ''}`.trim()}
           </Text>
           <Text style={[styles.handle, { color: colors.textSecondary }]}>
-            {mode === 'guest' ? 'Local-only experience' : user?.email || '@' + (user?.username || 'piko')}
+            {mode === 'guest' ? t('local_only_experience') : user?.email || '@' + (user?.username || 'piko')}
           </Text>
         </View>
 
         {mode === 'guest' ? (
           <View style={[styles.noticeCard, { backgroundColor: '#F97316' + '18', borderColor: '#F97316' }]}>
-            <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>Keep this data long-term?</Text>
+            <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>{t('keep_data_long_term')}</Text>
             <Text style={[styles.noticeBody, { color: colors.textSecondary }]}>
-              You are using all features in guest mode and your data stays on this device. If you want to keep data safer and prepare for sync, sign in or create an account.
+              {t('guest_mode_notice_body')}
             </Text>
             <TouchableOpacity
               style={[styles.noticeButton, { backgroundColor: '#F97316' }]}
               onPress={handleLogout}
             >
-              <Text style={styles.noticeButtonText}>Go to sign in</Text>
+              <Text style={styles.noticeButtonText}>{t('go_to_sign_in')}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -146,22 +148,22 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{totalItems}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Expense items</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('expense_items')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.statValue, { color: colors.secondary }]}>{totalPurchases}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Expenses logged</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('expenses_logged')}</Text>
           </View>
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Experience</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('experience')}</Text>
 
           <View style={styles.settingRow}>
             <View>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Theme</Text>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('theme')}</Text>
               <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
-                {settings.theme === 'dark' ? 'Night mode' : 'Light mode'}
+                {settings.theme === 'dark' ? t('night_mode_desc') : t('light_mode_desc')}
               </Text>
             </View>
             <Switch
@@ -174,7 +176,7 @@ const ProfileScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.settingRow} onPress={() => setLanguageVisible(true)}>
             <View>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Language</Text>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('language')}</Text>
               <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>{currentLanguage.nativeLabel}</Text>
             </View>
             <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
@@ -182,7 +184,7 @@ const ProfileScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.settingRow} onPress={() => setCurrencyVisible(true)}>
             <View>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Currency</Text>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('currency')}</Text>
               <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
                 {currentCurrency.symbol} {currentCurrency.code}
               </Text>
@@ -192,8 +194,8 @@ const ProfileScreen: React.FC = () => {
 
           <View style={styles.settingRow}>
             <View>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Notifications</Text>
-              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>Keep gentle reminders enabled</Text>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('notifications')}</Text>
+              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>{t('keep_gentle_reminders_enabled')}</Text>
             </View>
             <Switch
               value={settings.notificationsEnabled}
@@ -206,20 +208,20 @@ const ProfileScreen: React.FC = () => {
 
         {mode === 'authenticated' ? (
           <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Security</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('security')}</Text>
             <TouchableOpacity style={styles.settingRow} onPress={() => setSecurityModal('changePassword')}>
               <View>
-                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Change password</Text>
-                <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>Update your current password inside the app</Text>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('change_password_title')}</Text>
+                <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>{t('change_password_desc')}</Text>
               </View>
               <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.settingRow} onPress={() => setSecurityModal('resetSetup')}>
               <View>
-                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Reset question</Text>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{t('reset_question_title')}</Text>
                 <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
-                  {user?.reset_question || 'Create or update your local password reset prompt'}
+                  {user?.reset_question || t('reset_question_desc')}
                 </Text>
               </View>
               <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
@@ -229,7 +231,7 @@ const ProfileScreen: React.FC = () => {
 
         <TouchableOpacity style={[styles.logoutButton, { borderColor: colors.danger }]} onPress={handleLogout}>
           <Text style={[styles.logoutText, { color: colors.danger }]}>
-            {mode === 'guest' ? 'Leave guest mode' : 'Log out'}
+            {mode === 'guest' ? t('leave_guest_mode') : t('logout')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -238,17 +240,17 @@ const ProfileScreen: React.FC = () => {
         visible={logoutVisible}
         onClose={() => setLogoutVisible(false)}
         onConfirm={handleLogout}
-        title={mode === 'guest' ? 'Leave guest mode?' : 'Log out?'}
-        message={mode === 'guest' ? 'Your local data remains on this device.' : 'You can sign back in any time.'}
+        title={mode === 'guest' ? t('leave_guest_mode_title') : t('logout_confirm_title')}
+        message={mode === 'guest' ? t('leave_guest_mode_message') : t('logout_desc')}
         type="warning"
-        confirmText={mode === 'guest' ? 'Leave' : 'Log out'}
-        cancelText="Cancel"
+        confirmText={mode === 'guest' ? t('leave') : t('logout')}
+        cancelText={t('cancel')}
       />
 
       {languageVisible ? (
         <TouchableOpacity activeOpacity={1} style={styles.modalOverlay} onPress={() => setLanguageVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Choose language</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('choose_language')}</Text>
             <FlatList
               data={LANGUAGES}
               keyExtractor={item => item.code}
@@ -273,7 +275,7 @@ const ProfileScreen: React.FC = () => {
       {currencyVisible ? (
         <TouchableOpacity activeOpacity={1} style={styles.modalOverlay} onPress={() => setCurrencyVisible(false)}>
           <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Choose currency</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('choose_currency')}</Text>
             <FlatList
               data={currencies}
               keyExtractor={item => item.code}
@@ -297,13 +299,13 @@ const ProfileScreen: React.FC = () => {
       {securityModal === 'changePassword' ? (
         <View style={styles.modalOverlay}>
           <View style={[styles.formModal, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Change password</Text>
-            <AnimatedInput label="Current password" value={oldPassword} onChangeText={setOldPassword} isPassword />
-            <AnimatedInput label="New password" value={newPassword} onChangeText={setNewPassword} isPassword />
-            <AnimatedInput label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} isPassword />
-            <GradientButton title="Save password" onPress={submitPasswordChange} />
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('change_password_title')}</Text>
+            <AnimatedInput label={t('current_password')} value={oldPassword} onChangeText={setOldPassword} isPassword />
+            <AnimatedInput label={t('new_password')} value={newPassword} onChangeText={setNewPassword} isPassword />
+            <AnimatedInput label={t('confirm_password')} value={confirmPassword} onChangeText={setConfirmPassword} isPassword />
+            <GradientButton title={t('save_password')} onPress={submitPasswordChange} />
             <TouchableOpacity onPress={() => setSecurityModal(null)} style={styles.modalCancel}>
-              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -312,12 +314,12 @@ const ProfileScreen: React.FC = () => {
       {securityModal === 'resetSetup' ? (
         <View style={styles.modalOverlay}>
           <View style={[styles.formModal, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reset question</Text>
-            <AnimatedInput label="Question" value={resetQuestion} onChangeText={setResetQuestion} />
-            <AnimatedInput label="Answer" value={resetAnswer} onChangeText={setResetAnswer} />
-            <GradientButton title="Save reset prompt" onPress={submitResetSetup} />
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('reset_question_title')}</Text>
+            <AnimatedInput label={t('question')} value={resetQuestion} onChangeText={setResetQuestion} />
+            <AnimatedInput label={t('answer')} value={resetAnswer} onChangeText={setResetAnswer} />
+            <GradientButton title={t('save_reset_prompt')} onPress={submitResetSetup} />
             <TouchableOpacity onPress={() => setSecurityModal(null)} style={styles.modalCancel}>
-              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
