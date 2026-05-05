@@ -3,6 +3,7 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useTranslation } from 'react-i18next';
 
 import BrandLogo from '../components/common/BrandLogo';
 import { AuthStackParamList } from '../navigation/types';
@@ -15,6 +16,7 @@ import { typography } from '../theme/typography';
 type Nav = StackNavigationProp<AuthStackParamList, 'Splash'>;
 
 const SplashScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
   const theme = useAppSelector(state => state.settings.theme);
@@ -72,7 +74,7 @@ const SplashScreen: React.FC = () => {
           { transform: [{ scale: logoScale }], opacity: logoOpacity },
         ]}
       >
-        <BrandLogo subtitle="Daily money flow" color={colors.textPrimary} />
+        <BrandLogo subtitle={t('daily_money_flow')} color={colors.textPrimary} />
       </Animated.View>
 
       <Animated.View
@@ -85,23 +87,23 @@ const SplashScreen: React.FC = () => {
         ]}
       >
         <Text style={[styles.tagline, { color: colors.textPrimary }]}>
-          The expense app that feels calm, fast, and personal.
+          {t('splash_tagline')}
         </Text>
         <Text style={[styles.subline, { color: colors.textSecondary }]}>
-          Track groceries, rides, rent, coffee, subscriptions, and all your daily money movement in one place.
+          {t('splash_subline')}
         </Text>
 
         <View style={styles.pointList}>
-          <Text style={[styles.point, { color: colors.textPrimary }]}>• Guest mode keeps data safely on this device</Text>
-          <Text style={[styles.point, { color: colors.textPrimary }]}>• Account mode is ready for backend sync</Text>
-          <Text style={[styles.point, { color: colors.textPrimary }]}>• Reopening the app brings you straight back in</Text>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• {t('splash_guest_point')}</Text>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• {t('splash_account_point')}</Text>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• {t('splash_reopen_point')}</Text>
         </View>
 
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: '#F97316' }]}
           onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.primaryText}>Sign in</Text>
+          <Text style={styles.primaryText}>{t('sign_in')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -111,11 +113,11 @@ const SplashScreen: React.FC = () => {
           ]}
           onPress={() => navigation.navigate('Register')}
         >
-          <Text style={[styles.secondaryText, { color: colors.textPrimary }]}>Create account</Text>
+          <Text style={[styles.secondaryText, { color: colors.textPrimary }]}>{t('create_account')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => { dispatch(continueAsGuest()); }} style={styles.guestLink}>
-          <Text style={[styles.guestText, { color: colors.textSecondary }]}>Continue as guest</Text>
+          <Text style={[styles.guestText, { color: colors.textSecondary }]}>{t('continue_as_guest')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </LinearGradient>

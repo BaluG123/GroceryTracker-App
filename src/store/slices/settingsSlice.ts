@@ -13,6 +13,7 @@ interface SettingsState {
   theme: ThemeMode;
   currencyCode: string;
   language: LanguageCode;
+  hasSelectedLanguage: boolean;
   isLoaded: boolean;
   notificationsEnabled: boolean;
 }
@@ -21,6 +22,7 @@ const initialState: SettingsState = {
   theme: 'dark',
   currencyCode: 'INR',
   language: 'en',
+  hasSelectedLanguage: false,
   isLoaded: false,
   notificationsEnabled: true,
 };
@@ -37,6 +39,7 @@ export const loadSettings = createAsyncThunk(
       theme: (theme as ThemeMode) || 'dark',
       currencyCode: currency || 'INR',
       language: (language as LanguageCode) || 'en',
+      hasSelectedLanguage: Boolean(language),
     };
   },
 );
@@ -55,6 +58,7 @@ const settingsSlice = createSlice({
     },
     setLanguage: (state, action: PayloadAction<LanguageCode>) => {
       state.language = action.payload;
+      state.hasSelectedLanguage = true;
       saveLanguage(action.payload);
     },
     toggleNotifications: (state) => {
@@ -66,6 +70,7 @@ const settingsSlice = createSlice({
       state.theme = action.payload.theme;
       state.currencyCode = action.payload.currencyCode;
       state.language = action.payload.language;
+      state.hasSelectedLanguage = action.payload.hasSelectedLanguage;
       state.isLoaded = true;
     });
   },

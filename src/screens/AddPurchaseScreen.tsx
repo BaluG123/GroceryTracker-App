@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 import GradientButton from '../components/common/GradientButton';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -36,6 +37,7 @@ import {
 const paymentMethods = ['cash', 'upi', 'card', 'bank', 'wallet'];
 
 const AddPurchaseScreen: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { items } = useAppSelector(state => state.items);
   const { isCreating } = useAppSelector(state => state.purchases);
@@ -66,6 +68,11 @@ const AddPurchaseScreen: React.FC = () => {
     () => items.filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase())),
     [itemSearch, items],
   );
+
+  const categoryLabel = (value: string) =>
+    t(value, { defaultValue: getCategoryLabel(value) });
+  const unitLabel = (value: string) =>
+    t(value, { defaultValue: getUnitLabel(value) });
 
   const qty = Number.parseFloat(quantity) || 0;
   const price = Number.parseFloat(pricePerUnit) || 0;
@@ -206,7 +213,7 @@ const AddPurchaseScreen: React.FC = () => {
                     { color: category === entry ? getCategoryColor(entry) : colors.textSecondary },
                   ]}
                 >
-                  {getCategoryLabel(entry)}
+                  {categoryLabel(entry)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -233,7 +240,7 @@ const AddPurchaseScreen: React.FC = () => {
                     { color: unitType === entry ? colors.primary : colors.textSecondary },
                   ]}
                 >
-                  {getUnitLabel(entry)}
+                  {unitLabel(entry)}
                 </Text>
               </TouchableOpacity>
             ))}

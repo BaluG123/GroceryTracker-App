@@ -5,17 +5,19 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store';
 import { checkStoredAuth } from '../store/slices/authSlice';
 import { loadSettings } from '../store/slices/settingsSlice';
+import i18n from '../i18n';
 import { darkColors, lightColors } from '../theme/colors';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
 import BootLoader from '../components/common/BootLoader';
+import LanguageSelectionScreen from '../screens/LanguageSelectionScreen';
 
 const RootStack = createStackNavigator();
 
 const AppNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
   const { token, mode, isAuthChecked } = useAppSelector((state: RootState) => state.auth);
-  const theme = useAppSelector((state: RootState) => state.settings.theme);
+  const { theme, language, isLoaded: isSettingsLoaded, hasSelectedLanguage } = useAppSelector((state: RootState) => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   useEffect(() => {
@@ -23,8 +25,18 @@ const AppNavigator: React.FC = () => {
     dispatch(checkStoredAuth());
   }, [dispatch]);
 
-  if (!isAuthChecked) {
+  useEffect(() => {
+    if (isSettingsLoaded) {
+      i18n.changeLanguage(language);
+    }
+  }, [isSettingsLoaded, language]);
+
+  if (!isAuthChecked || !isSettingsLoaded) {
     return <BootLoader theme={theme} />;
+  }
+
+  if (!hasSelectedLanguage) {
+    return <LanguageSelectionScreen />;
   }
 
   return (

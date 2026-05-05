@@ -112,7 +112,7 @@ const ReportsScreen: React.FC = () => {
   const pieData = Object.entries(categoryMap)
     .sort(([, a], [, b]) => b - a)
     .map(([key, value]) => ({
-      name: getCategoryLabel(key),
+      name: t(key, { defaultValue: getCategoryLabel(key) }),
       amount: value,
       color: getCategoryColor(key),
       legendFontColor: colors.textSecondary,
@@ -129,8 +129,8 @@ const ReportsScreen: React.FC = () => {
     ? Math.round((topCategory.amount / totalSpent) * 100)
     : 0;
   const reportPulse = totalExpenses > 0
-    ? `${activeDays.length} active days`
-    : 'No activity yet';
+    ? t('active_days', { count: activeDays.length })
+    : t('no_activity_yet');
 
   // Export report as text
   const handleExport = async () => {
@@ -251,7 +251,7 @@ const ReportsScreen: React.FC = () => {
                   {formatPrice(averageDailySpend, currencyCode)}
                 </Text>
                 <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
-                  Avg active day
+                  {t('avg_active_day')}
                 </Text>
               </View>
               <View style={[styles.insightCard, { backgroundColor: colors.card }]}>
@@ -260,7 +260,7 @@ const ReportsScreen: React.FC = () => {
                   {topCategory?.name || 'None'}
                 </Text>
                 <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
-                  {topCategoryShare ? `${topCategoryShare}% of spend` : reportPulse}
+                  {topCategoryShare ? t('percent_of_spend', { percent: topCategoryShare }) : reportPulse}
                 </Text>
               </View>
               <View style={[styles.insightCard, { backgroundColor: colors.card }]}>
@@ -269,7 +269,7 @@ const ReportsScreen: React.FC = () => {
                   {peakDay ? formatPrice(parseAmount(peakDay.total_spent), currencyCode) : formatPrice(0, currencyCode)}
                 </Text>
                 <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
-                  Peak day
+                  {t('peak_day')}
                 </Text>
               </View>
             </View>
@@ -329,7 +329,7 @@ const ReportsScreen: React.FC = () => {
                           📈 {t('spending_trend')}
                         </Text>
                         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-                          Daily movement across {getMonthName(selectedMonth)}
+                          {t('daily_movement_across', { month: getMonthName(selectedMonth) })}
                         </Text>
                       </View>
                       <View style={[styles.chartBadge, { backgroundColor: colors.primary + '18' }]}>
@@ -364,7 +364,7 @@ const ReportsScreen: React.FC = () => {
                           🍩 {t('category_breakdown')}
                         </Text>
                         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-                          Where this month’s money is going
+                          {t('category_money_flow')}
                         </Text>
                       </View>
                     </View>
@@ -407,7 +407,7 @@ const ReportsScreen: React.FC = () => {
                           📊 {t('item_comparison')}
                         </Text>
                         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-                          Top spend drivers ranked by amount
+                          {t('top_spend_drivers')}
                         </Text>
                       </View>
                     </View>
@@ -470,7 +470,7 @@ const ReportsScreen: React.FC = () => {
               onPress={handleExport}
             >
               <Text style={[styles.exportText, { color: colors.primary }]}>
-                📤 Share expense report
+                📤 {t('share_expense_report')}
               </Text>
             </TouchableOpacity>
           </>

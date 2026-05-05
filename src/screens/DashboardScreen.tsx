@@ -88,7 +88,7 @@ const DashboardScreen: React.FC = () => {
   });
 
   const pieData = Object.entries(categoryMap).sort(([, a], [, b]) => b - a).map(([key, value]) => ({
-    name: getCategoryLabel(key),
+    name: t(key, { defaultValue: getCategoryLabel(key) }),
     amount: value,
     color: getCategoryColor(key),
     legendFontColor: colors.textSecondary,

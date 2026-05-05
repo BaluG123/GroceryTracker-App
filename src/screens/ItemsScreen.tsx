@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 
 import CategoryChip from '../components/common/CategoryChip';
@@ -39,6 +40,7 @@ import {
 } from '../utils/helpers';
 
 const ItemsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { items, isLoading, isCreating } = useAppSelector(state => state.items);
   const { currencyCode, theme } = useAppSelector(state => state.settings);
@@ -66,6 +68,11 @@ const ItemsScreen: React.FC = () => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const categoryLabel = (category: string) =>
+    t(category, { defaultValue: getCategoryLabel(category) });
+  const unitLabel = (unit: string) =>
+    t(unit, { defaultValue: getUnitLabel(unit) });
 
   const resetForm = () => {
     setEditingItem(null);
@@ -207,17 +214,17 @@ const ItemsScreen: React.FC = () => {
 
       <View style={[styles.header, { paddingTop: spacing.massive }]}>
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Expense items</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('my_items')}</Text>
           <TouchableOpacity
             onPress={openCreate}
             style={[styles.headerAddButton, { backgroundColor: colors.primary }]}
             activeOpacity={0.85}
           >
-            <Text style={styles.headerAddText}>+ Add</Text>
+            <Text style={styles.headerAddText}>+ {t('add')}</Text>
           </TouchableOpacity>
         </View>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          Reusable templates for the things you spend on often.
+          {t('reusable_templates_desc')}
         </Text>
       </View>
 
@@ -227,7 +234,7 @@ const ItemsScreen: React.FC = () => {
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
               style={[styles.searchInput, { color: colors.textPrimary }]}
-              placeholder="Search expense items"
+              placeholder={t('search_expense_items')}
               placeholderTextColor={colors.textTertiary}
               value={search}
               onChangeText={setSearch}
@@ -236,11 +243,11 @@ const ItemsScreen: React.FC = () => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          <CategoryChip label="All" isSelected={selectedCategory === 'all'} onPress={() => setSelectedCategory('all')} />
+          <CategoryChip label={t('all')} isSelected={selectedCategory === 'all'} onPress={() => setSelectedCategory('all')} />
           {expenseCategories.map(category => (
             <CategoryChip
               key={category}
-              label={getCategoryLabel(category)}
+              label={categoryLabel(category)}
               icon={getCategoryIcon(category)}
               color={getCategoryColor(category)}
               isSelected={selectedCategory === category}
@@ -265,8 +272,8 @@ const ItemsScreen: React.FC = () => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
             <EmptyState
-              title="No expense items yet"
-              description="Create reusable items like Rent, Coffee, Cab, Internet, or Vegetables."
+              title={t('no_items')}
+              description={t('no_items_desc')}
               icon="🧾"
             />
           }
@@ -293,21 +300,26 @@ const ItemsScreen: React.FC = () => {
         >
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHandle} />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScroll}
+            >
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {editingItem ? 'Edit expense item' : 'New expense item'}
+              {editingItem ? t('edit_item') : t('add_item')}
             </Text>
 
             <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
               <TextInput
                 style={[styles.inputText, { color: colors.textPrimary }]}
-                placeholder="Name"
+                placeholder={t('item_name')}
                 placeholderTextColor={colors.textTertiary}
                 value={formName}
                 onChangeText={setFormName}
               />
             </View>
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Unit</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('unit_type')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitRow}>
               {expenseUnits.map(unit => (
                 <TouchableOpacity
@@ -323,7 +335,7 @@ const ItemsScreen: React.FC = () => {
                 >
                   <Text style={styles.unitEmoji}>{getUnitIcon(unit)}</Text>
                   <Text style={[styles.unitLabel, { color: formUnit === unit ? colors.primary : colors.textSecondary }]}>
-                    {getUnitLabel(unit)}
+                    {unitLabel(unit)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -333,7 +345,7 @@ const ItemsScreen: React.FC = () => {
               <Text style={[styles.currencySymbol, { color: colors.textSecondary }]}>₹</Text>
               <TextInput
                 style={[styles.inputText, { color: colors.textPrimary }]}
-                placeholder="Default price"
+                placeholder={t('default_price')}
                 placeholderTextColor={colors.textTertiary}
                 value={formPrice}
                 onChangeText={setFormPrice}
@@ -344,14 +356,14 @@ const ItemsScreen: React.FC = () => {
             <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
               <TextInput
                 style={[styles.inputText, { color: colors.textPrimary }]}
-                placeholder="Description or usage"
+                placeholder={t('description_or_usage')}
                 placeholderTextColor={colors.textTertiary}
                 value={formDescription}
                 onChangeText={setFormDescription}
               />
             </View>
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('category')}</Text>
             <View style={styles.categoryGrid}>
               {expenseCategories.map(category => (
                 <TouchableOpacity
@@ -394,14 +406,14 @@ const ItemsScreen: React.FC = () => {
                     ]}
                     numberOfLines={1}
                   >
-                    {getCategoryLabel(category)}
+                    {categoryLabel(category)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <GradientButton
-              title={editingItem ? 'Save changes' : 'Create item'}
+              title={editingItem ? t('save_changes') : t('create_item')}
               onPress={handleSubmit}
               loading={isCreating}
               disabled={!formName.trim() || !formPrice.trim()}
@@ -409,8 +421,9 @@ const ItemsScreen: React.FC = () => {
             />
 
             <TouchableOpacity onPress={() => setShowEditor(false)} style={styles.cancel}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       ) : null}
@@ -508,7 +521,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xxl,
     borderTopRightRadius: borderRadius.xxl,
     padding: spacing.xxl,
-    paddingBottom: spacing.massive,
     maxHeight: '86%',
   },
   modalHandle: {
@@ -520,6 +532,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   modalTitle: { ...typography.title, marginBottom: spacing.lg },
+  modalScroll: {
+    paddingBottom: spacing.massive,
+  },
   input: {
     flexDirection: 'row',
     alignItems: 'center',
