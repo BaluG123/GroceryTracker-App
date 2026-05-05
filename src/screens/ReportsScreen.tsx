@@ -23,14 +23,21 @@ import { darkColors, lightColors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import { formatPrice } from '../utils/currency';
-import { getMonthName, getCurrentMonth, getCurrentYear } from '../utils/date';
+import { getMonthName } from '../utils/date';
 import { getCategoryColor, getCategoryLabel, normalizeCategory } from '../utils/helpers';
 import { CardSkeleton } from '../components/common/SkeletonLoader';
 import EmptyState from '../components/common/EmptyState';
 import OfflineBanner from '../components/common/OfflineBanner';
-import { Category } from '../types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const CHART_WIDTH = SCREEN_WIDTH - spacing.lg * 4;
+
+const parseAmount = (value: string | number | undefined | null): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  return Number.parseFloat(value || '0') || 0;
+};
 
 const ReportsScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -38,7 +45,6 @@ const ReportsScreen: React.FC = () => {
   const {
     monthlySummary,
     itemFrequency,
-    dailyBreakdown,
     isLoading,
     selectedMonth,
     selectedYear,
@@ -79,7 +85,7 @@ const ReportsScreen: React.FC = () => {
     dispatch(setReportPeriod({ month: newMonth, year: newYear }));
   };
 
-  const totalSpent = monthlySummary?.total_spent || 0;
+  const totalSpent = parseAmount(monthlySummary?.total_spent);
   const totalExpenses = monthlySummary?.total_purchases || 0;
 
   // Line chart: daily spending trend
@@ -87,14 +93,14 @@ const ReportsScreen: React.FC = () => {
   const lineLabels = dailyData
     .filter((_: any, i: number) => i % 3 === 0)
     .map((d: any) => new Date(d.date).getDate().toString());
-  const lineValues = dailyData.map((d: any) => d.total_spent || 0);
+  const lineValues = dailyData.map((d: any) => parseAmount(d.total_spent));
 
   // Bar chart: top items
   const topItems = [...(itemFrequency?.items || [])]
-    .sort((a: any, b: any) => b.total_spent - a.total_spent)
+    .sort((a: any, b: any) => parseAmount(b.total_spent) - parseAmount(a.total_spent))
     .slice(0, 6);
   const barLabels = topItems.map((i: any) => i.item_name.substring(0, 6));
-  const barValues = topItems.map((i: any) => i.total_spent);
+  const barValues = topItems.map((i: any) => parseAmount(i.total_spent));
 
   // Pie chart: category breakdown
   const categoryMap: Record<string, number> = {};
@@ -112,6 +118,19 @@ const ReportsScreen: React.FC = () => {
       legendFontColor: colors.textSecondary,
       legendFontSize: 11,
     }));
+
+  const activeDays = dailyData.filter((day: any) => parseAmount(day.total_spent) > 0);
+  const averageDailySpend = activeDays.length ? totalSpent / activeDays.length : 0;
+  const peakDay = [...dailyData].sort(
+    (a: any, b: any) => parseAmount(b.total_spent) - parseAmount(a.total_spent),
+  )[0];
+  const topCategory = pieData[0];
+  const topCategoryShare = topCategory && totalSpent
+    ? Math.round((topCategory.amount / totalSpent) * 100)
+    : 0;
+  const reportPulse = totalExpenses > 0
+    ? `${activeDays.length} active days`
+    : 'No activity yet';
 
   // Export report as text
   const handleExport = async () => {
@@ -134,8 +153,15 @@ const ReportsScreen: React.FC = () => {
     color: (opacity = 1) => `rgba(108, 99, 255, ${opacity})`,
     labelColor: () => colors.textSecondary,
     style: { borderRadius: 16 },
-    propsForDots: { r: '3', strokeWidth: '2', stroke: '#6C63FF' },
-    barPercentage: 0.6,
+    propsForDots: { r: '4', strokeWidth: '2', stroke: '#6C63FF' },
+    propsForBackgroundLines: {
+      stroke: colors.border,
+      strokeDasharray: '4 8',
+    },
+    fillShadowGradient: colors.primary,
+    fillShadowGradientOpacity: 0.14,
+    barPercentage: 0.72,
+    useShadowColorFromDataset: false,
   };
 
   const hasData = totalSpent > 0 || totalExpenses > 0;
@@ -189,6 +215,7 @@ const ReportsScreen: React.FC = () => {
           <>
             {/* Total Spending Card */}
             <View style={[styles.spendingCard, { backgroundColor: colors.card }]}>
+              <View style={[styles.cardHalo, { backgroundColor: colors.primary + '18' }]} />
               <Text style={[styles.spendingLabel, { color: colors.textSecondary }]}>
                 {t('total_spent_label')}
               </Text>
@@ -214,6 +241,36 @@ const ReportsScreen: React.FC = () => {
                     {t('items')}
                   </Text>
                 </View>
+              </View>
+            </View>
+
+            <View style={styles.insightGrid}>
+              <View style={[styles.insightCard, { backgroundColor: colors.card }]}>
+                <Text style={styles.insightIcon}>⚡</Text>
+                <Text style={[styles.insightValue, { color: colors.textPrimary }]}>
+                  {formatPrice(averageDailySpend, currencyCode)}
+                </Text>
+                <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
+                  Avg active day
+                </Text>
+              </View>
+              <View style={[styles.insightCard, { backgroundColor: colors.card }]}>
+                <Text style={styles.insightIcon}>🎯</Text>
+                <Text style={[styles.insightValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {topCategory?.name || 'None'}
+                </Text>
+                <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
+                  {topCategoryShare ? `${topCategoryShare}% of spend` : reportPulse}
+                </Text>
+              </View>
+              <View style={[styles.insightCard, { backgroundColor: colors.card }]}>
+                <Text style={styles.insightIcon}>📌</Text>
+                <Text style={[styles.insightValue, { color: colors.textPrimary }]}>
+                  {peakDay ? formatPrice(parseAmount(peakDay.total_spent), currencyCode) : formatPrice(0, currencyCode)}
+                </Text>
+                <Text style={[styles.insightLabel, { color: colors.textSecondary }]}>
+                  Peak day
+                </Text>
               </View>
             </View>
 
@@ -266,19 +323,33 @@ const ReportsScreen: React.FC = () => {
                 {/* Line Chart — Daily Trend */}
                 {lineValues.length > 1 && (
                   <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
-                      📈 {t('spending_trend')}
-                    </Text>
+                    <View style={styles.chartHeader}>
+                      <View>
+                        <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+                          📈 {t('spending_trend')}
+                        </Text>
+                        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+                          Daily movement across {getMonthName(selectedMonth)}
+                        </Text>
+                      </View>
+                      <View style={[styles.chartBadge, { backgroundColor: colors.primary + '18' }]}>
+                        <Text style={[styles.chartBadgeText, { color: colors.primary }]}>
+                          {activeDays.length} days
+                        </Text>
+                      </View>
+                    </View>
                     <LineChart
                       data={{
                         labels: lineLabels,
                         datasets: [{ data: lineValues }],
                       }}
-                      width={SCREEN_WIDTH - 64}
-                      height={200}
+                      width={CHART_WIDTH}
+                      height={214}
                       yAxisLabel=""
                       chartConfig={chartConfig}
                       bezier
+                      fromZero
+                      segments={4}
                       style={styles.chart}
                     />
                   </View>
@@ -287,19 +358,41 @@ const ReportsScreen: React.FC = () => {
                 {/* Pie Chart — Category Breakdown */}
                 {pieData.length > 0 && (
                   <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
-                      🍩 {t('category_breakdown')}
-                    </Text>
+                    <View style={styles.chartHeader}>
+                      <View>
+                        <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+                          🍩 {t('category_breakdown')}
+                        </Text>
+                        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+                          Where this month’s money is going
+                        </Text>
+                      </View>
+                    </View>
                     <PieChart
                       data={pieData}
-                      width={SCREEN_WIDTH - 64}
-                      height={200}
+                      width={CHART_WIDTH}
+                      height={208}
                       chartConfig={chartConfig}
                       accessor="amount"
                       backgroundColor="transparent"
                       paddingLeft="15"
                       absolute
                     />
+                    <View style={styles.categoryLegend}>
+                      {pieData.slice(0, 5).map(category => (
+                        <View key={category.name} style={styles.categoryLegendRow}>
+                          <View style={styles.categoryLegendLeft}>
+                            <View style={[styles.legendDot, { backgroundColor: category.color }]} />
+                            <Text style={[styles.legendName, { color: colors.textPrimary }]}>
+                              {category.name}
+                            </Text>
+                          </View>
+                          <Text style={[styles.legendAmount, { color: colors.textSecondary }]}>
+                            {formatPrice(category.amount, currencyCode)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
               </>
@@ -308,22 +401,31 @@ const ReportsScreen: React.FC = () => {
                 {/* Bar Chart — Item Comparison */}
                 {barValues.length > 0 && (
                   <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
-                      📊 {t('item_comparison')}
-                    </Text>
+                    <View style={styles.chartHeader}>
+                      <View>
+                        <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+                          📊 {t('item_comparison')}
+                        </Text>
+                        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+                          Top spend drivers ranked by amount
+                        </Text>
+                      </View>
+                    </View>
                     <BarChart
                       data={{
                         labels: barLabels,
                         datasets: [{ data: barValues }],
                       }}
-                      width={SCREEN_WIDTH - 64}
-                      height={220}
+                      width={CHART_WIDTH}
+                      height={230}
                       yAxisLabel=""
                       yAxisSuffix=""
                       chartConfig={{
                         ...chartConfig,
                         color: (opacity = 1) => `rgba(0, 212, 170, ${opacity})`,
                       }}
+                      fromZero
+                      segments={4}
                       style={styles.chart}
                     />
                   </View>
@@ -401,6 +503,15 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     marginBottom: spacing.lg,
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  cardHalo: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    top: -90,
+    right: -40,
   },
   spendingLabel: { ...typography.caption },
   spendingAmount: { ...typography.amountLarge, marginTop: spacing.xs },
@@ -413,6 +524,28 @@ const styles = StyleSheet.create({
   statEmoji: { fontSize: 20 },
   statValue: { ...typography.bodyBold, marginTop: spacing.xxs },
   statLabel: { ...typography.small, marginTop: spacing.xxs },
+  insightGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  insightCard: {
+    flex: 1,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    minHeight: 104,
+  },
+  insightIcon: {
+    fontSize: 18,
+    marginBottom: spacing.sm,
+  },
+  insightValue: {
+    ...typography.captionBold,
+  },
+  insightLabel: {
+    ...typography.small,
+    marginTop: spacing.xxs,
+  },
   // Tabs
   tabBar: {
     flexDirection: 'row',
@@ -434,8 +567,47 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     overflow: 'hidden',
   },
-  chartTitle: { ...typography.bodyBold, marginBottom: spacing.md },
-  chart: { borderRadius: 16 },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  chartTitle: { ...typography.bodyBold },
+  chartSubtitle: { ...typography.small, marginTop: spacing.xxs },
+  chartBadge: {
+    borderRadius: borderRadius.round,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  chartBadgeText: { ...typography.small },
+  chart: { borderRadius: 16, marginLeft: -spacing.sm },
+  categoryLegend: {
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingTop: spacing.sm,
+  },
+  categoryLegendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  categoryLegendLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: spacing.sm,
+  },
+  legendName: { ...typography.captionBold },
+  legendAmount: { ...typography.caption },
   // Top items
   topItemRow: {
     flexDirection: 'row',

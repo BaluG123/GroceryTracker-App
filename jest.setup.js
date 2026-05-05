@@ -4,6 +4,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 jest.mock('react-native-linear-gradient', () => 'LinearGradient');
 
+jest.mock('lottie-react-native', () => 'LottieView');
+
 jest.mock('react-native-svg', () => {
   const React = require('react');
   const { View } = require('react-native');

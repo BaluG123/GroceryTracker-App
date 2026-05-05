@@ -354,14 +354,49 @@ const ItemsScreen: React.FC = () => {
             <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
             <View style={styles.categoryGrid}>
               {expenseCategories.map(category => (
-                <CategoryChip
+                <TouchableOpacity
                   key={category}
-                  label={getCategoryLabel(category)}
-                  icon={getCategoryIcon(category)}
-                  color={getCategoryColor(category)}
-                  isSelected={formCategory === category}
                   onPress={() => setFormCategory(category)}
-                />
+                  activeOpacity={0.85}
+                  style={[
+                    styles.categoryTile,
+                    {
+                      backgroundColor:
+                        formCategory === category
+                          ? getCategoryColor(category) + '22'
+                          : colors.inputBackground,
+                      borderColor:
+                        formCategory === category
+                          ? getCategoryColor(category)
+                          : colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.categoryTileIcon,
+                      { backgroundColor: getCategoryColor(category) + '20' },
+                    ]}
+                  >
+                    <Text style={styles.categoryTileEmoji}>
+                      {getCategoryIcon(category)}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoryTileText,
+                      {
+                        color:
+                          formCategory === category
+                            ? getCategoryColor(category)
+                            : colors.textSecondary,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {getCategoryLabel(category)}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
 
@@ -512,7 +547,31 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginBottom: spacing.md,
+  },
+  categoryTile: {
+    width: '48%',
+    minHeight: 54,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  categoryTileIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  categoryTileEmoji: { fontSize: 16 },
+  categoryTileText: {
+    ...typography.captionBold,
+    flex: 1,
   },
   cancel: { alignItems: 'center', marginTop: spacing.lg },
   cancelText: { ...typography.body },
