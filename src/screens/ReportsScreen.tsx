@@ -80,7 +80,7 @@ const ReportsScreen: React.FC = () => {
   };
 
   const totalSpent = monthlySummary?.total_spent || 0;
-  const totalPurchases = monthlySummary?.total_purchases || 0;
+  const totalExpenses = monthlySummary?.total_purchases || 0;
 
   // Line chart: daily spending trend
   const dailyData = monthlySummary?.daily_breakdown || [];
@@ -90,7 +90,7 @@ const ReportsScreen: React.FC = () => {
   const lineValues = dailyData.map((d: any) => d.total_spent || 0);
 
   // Bar chart: top items
-  const topItems = (itemFrequency?.items || [])
+  const topItems = [...(itemFrequency?.items || [])]
     .sort((a: any, b: any) => b.total_spent - a.total_spent)
     .slice(0, 6);
   const barLabels = topItems.map((i: any) => i.item_name.substring(0, 6));
@@ -116,8 +116,8 @@ const ReportsScreen: React.FC = () => {
   const handleExport = async () => {
     const reportText = `📊 ${getMonthName(selectedMonth)} ${selectedYear} Report\n\n` +
       `💰 Total Spent: ${formatPrice(totalSpent, currencyCode)}\n` +
-      `🛒 Total Purchases: ${totalPurchases}\n\n` +
-      `📦 Top Items:\n` +
+      `🧾 Total Expenses: ${totalExpenses}\n\n` +
+      `📦 Top Expense Items:\n` +
       topItems.map((item: any, i: number) => `${i + 1}. ${item.item_name} — ${formatPrice(item.total_spent, currencyCode)} (${item.times_bought}×)`).join('\n');
 
     try {
@@ -137,7 +137,7 @@ const ReportsScreen: React.FC = () => {
     barPercentage: 0.6,
   };
 
-  const hasData = totalSpent > 0 || totalPurchases > 0;
+  const hasData = totalSpent > 0 || totalExpenses > 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -198,7 +198,7 @@ const ReportsScreen: React.FC = () => {
                 <View style={styles.statItem}>
                   <Text style={styles.statEmoji}>🛒</Text>
                   <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                    {totalPurchases}
+                    {totalExpenses}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                     {t('total_purchases')}
@@ -367,7 +367,7 @@ const ReportsScreen: React.FC = () => {
               onPress={handleExport}
             >
               <Text style={[styles.exportText, { color: colors.primary }]}>
-                📤 Share Report
+                📤 Share expense report
               </Text>
             </TouchableOpacity>
           </>

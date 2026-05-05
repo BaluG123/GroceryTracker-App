@@ -5,6 +5,11 @@ import {
   ItemFrequencyReport,
   DailyBreakdownMonth,
 } from '../../types';
+import {
+  buildGuestDailyBreakdown,
+  buildGuestItemFrequency,
+  buildGuestMonthlySummary,
+} from '../../services/guestExpenseStorage';
 
 interface ReportsState {
   monthlySummary: MonthlySummary | null;
@@ -32,10 +37,13 @@ export const fetchMonthlySummary = createAsyncThunk(
   'reports/monthlySummary',
   async (
     { month, year }: { month: number; year: number },
-    { rejectWithValue },
+    { rejectWithValue, getState },
   ) => {
     try {
-      return await reportsApi.monthlySummary(month, year);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await buildGuestMonthlySummary(month, year)
+        : await reportsApi.monthlySummary(month, year);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch monthly summary');
     }
@@ -46,10 +54,13 @@ export const fetchItemFrequency = createAsyncThunk(
   'reports/itemFrequency',
   async (
     { month, year }: { month: number; year: number },
-    { rejectWithValue },
+    { rejectWithValue, getState },
   ) => {
     try {
-      return await reportsApi.itemFrequency(month, year);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await buildGuestItemFrequency(month, year)
+        : await reportsApi.itemFrequency(month, year);
     } catch (error: any) {
       return rejectWithValue(
         error.message || 'Failed to fetch item frequency',
@@ -62,10 +73,13 @@ export const fetchDailyBreakdown = createAsyncThunk(
   'reports/dailyBreakdown',
   async (
     { month, year }: { month: number; year: number },
-    { rejectWithValue },
+    { rejectWithValue, getState },
   ) => {
     try {
-      return await reportsApi.dailyBreakdownByMonth(month, year);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await buildGuestDailyBreakdown(month, year)
+        : await reportsApi.dailyBreakdownByMonth(month, year);
     } catch (error: any) {
       return rejectWithValue(
         error.message || 'Failed to fetch daily breakdown',

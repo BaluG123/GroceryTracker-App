@@ -1,200 +1,199 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Modal,
   FlatList,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import Toast from 'react-native-toast-message';
+
+import AnimatedInput from '../components/common/AnimatedInput';
+import CustomModal from '../components/common/CustomModal';
+import GradientButton from '../components/common/GradientButton';
+import OfflineBanner from '../components/common/OfflineBanner';
+import { LANGUAGES } from '../i18n';
+import i18n from '../i18n';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
-import { fetchItems } from '../store/slices/itemsSlice';
 import {
-  setTheme,
+  forceLogout,
+  changePassword,
+  configureReset,
+  logout,
+} from '../store/slices/authSlice';
+import {
   setCurrency,
   setLanguage,
+  setTheme,
   toggleNotifications,
 } from '../store/slices/settingsSlice';
 import { darkColors, lightColors } from '../theme/colors';
+import { borderRadius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { spacing, borderRadius } from '../theme/spacing';
-import { formatPrice, currencies } from '../utils/currency';
-import { LANGUAGES } from '../i18n';
-import i18n from '../i18n';
-import CustomModal from '../components/common/CustomModal';
-import OfflineBanner from '../components/common/OfflineBanner';
-import { ThemeMode, LanguageCode } from '../types';
+import { LanguageCode, ThemeMode } from '../types';
+import { currencies } from '../utils/currency';
+
+type SecurityModal = 'changePassword' | 'resetSetup' | null;
 
 const ProfileScreen: React.FC = () => {
-  const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector(state => state.auth);
+  const { user, mode } = useAppSelector(state => state.auth);
   const { totalCount: totalItems } = useAppSelector(state => state.items);
   const { totalCount: totalPurchases } = useAppSelector(state => state.purchases);
   const settings = useAppSelector(state => state.settings);
-  const theme = settings.theme;
-  const colors = theme === 'dark' ? darkColors : lightColors;
+  const colors = settings.theme === 'dark' ? darkColors : lightColors;
 
-  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
-  const [languageModalVisible, setLanguageModalVisible] = useState(false);
-  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
-
-  useEffect(() => {
-    dispatch(fetchItems(1));
-  }, [dispatch]);
-
-  const handleLogout = () => {
-    dispatch(logout());
-    setLogoutModalVisible(false);
-  };
+  const [logoutVisible, setLogoutVisible] = useState(false);
+  const [languageVisible, setLanguageVisible] = useState(false);
+  const [currencyVisible, setCurrencyVisible] = useState(false);
+  const [securityModal, setSecurityModal] = useState<SecurityModal>(null);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetQuestion, setResetQuestion] = useState(user?.reset_question || '');
+  const [resetAnswer, setResetAnswer] = useState('');
 
   const handleThemeToggle = () => {
-    const newTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
-    dispatch(setTheme(newTheme));
+    const nextTheme: ThemeMode = settings.theme === 'dark' ? 'light' : 'dark';
+    dispatch(setTheme(nextTheme));
   };
 
-  const handleLanguageSelect = (code: LanguageCode) => {
-    dispatch(setLanguage(code));
-    i18n.changeLanguage(code);
-    setLanguageModalVisible(false);
+  const currentCurrency = currencies.find(item => item.code === settings.currencyCode) || currencies[0];
+  const currentLanguage = LANGUAGES.find(item => item.code === settings.language) || LANGUAGES[0];
+
+  const handleLogout = () => {
+    try {
+      setLogoutVisible(false);
+      dispatch(forceLogout());
+      dispatch(logout());
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Exit failed', text2: String(error) });
+    }
   };
 
-  const handleCurrencySelect = (code: string) => {
-    dispatch(setCurrency(code));
-    setCurrencyModalVisible(false);
+  const submitPasswordChange = async () => {
+    try {
+      await dispatch(
+        changePassword({
+          old_password: oldPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      ).unwrap();
+      Toast.show({ type: 'success', text1: 'Password changed', text2: 'Your account password was updated.' });
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSecurityModal(null);
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Change failed', text2: String(error) });
+    }
   };
 
-  const currentCurrency = currencies.find(c => c.code === settings.currencyCode) || currencies[0];
-  const currentLanguage = LANGUAGES.find(l => l.code === settings.language) || LANGUAGES[0];
-
-  const memberSince = user?.date_joined
-    ? new Date(user.date_joined).toLocaleDateString('en-IN', {
-        month: 'long',
-        year: 'numeric',
-      })
-    : '—';
+  const submitResetSetup = async () => {
+    try {
+      await dispatch(
+        configureReset({
+          reset_question: resetQuestion.trim(),
+          reset_answer: resetAnswer.trim(),
+        }),
+      ).unwrap();
+      Toast.show({ type: 'success', text1: 'Reset saved', text2: 'Your local reset prompt is ready.' });
+      setResetAnswer('');
+      setSecurityModal(null);
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Save failed', text2: String(error) });
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={[styles.title, { color: colors.textPrimary, paddingTop: spacing.massive }]}>
-          👤 {t('profile')}
-        </Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.title, { color: colors.textPrimary, paddingTop: spacing.massive }]}>Profile</Text>
 
-        {/* User Card */}
-        <View style={[styles.userCard, { backgroundColor: colors.card }]}>
-          <View style={[styles.avatarLarge, { backgroundColor: colors.primary + '30' }]}>
-            <Text style={styles.avatarLargeText}>
-              {(user?.first_name?.[0] || 'U').toUpperCase()}
+        <View style={[styles.heroCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
+            <Text style={[styles.avatarText, { color: colors.primary }]}>
+              {(user?.first_name?.[0] || 'P').toUpperCase()}
             </Text>
           </View>
-          <Text style={[styles.userName, { color: colors.textPrimary }]}>
-            {user?.first_name} {user?.last_name}
+          <Text style={[styles.name, { color: colors.textPrimary }]}>
+            {mode === 'guest' ? 'Guest Mode' : `${user?.first_name || ''} ${user?.last_name || ''}`.trim()}
           </Text>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-            📧 {user?.email}
-          </Text>
-          <Text style={[styles.userMeta, { color: colors.textTertiary }]}>
-            {t('member_since')}: {memberSince}
+          <Text style={[styles.handle, { color: colors.textSecondary }]}>
+            {mode === 'guest' ? 'Local-only experience' : user?.email || '@' + (user?.username || 'piko')}
           </Text>
         </View>
 
-        {/* App Stats */}
-        <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            📊 {t('app_stats')}
-          </Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: colors.primary }]}>
-                {totalItems}
-              </Text>
-              <Text style={[styles.statName, { color: colors.textSecondary }]}>
-                {t('items_tracked')}
-              </Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: colors.secondary }]}>
-                {totalPurchases}
-              </Text>
-              <Text style={[styles.statName, { color: colors.textSecondary }]}>
-                {t('purchases_tracked')}
-              </Text>
-            </View>
+        {mode === 'guest' ? (
+          <View style={[styles.noticeCard, { backgroundColor: '#F97316' + '18', borderColor: '#F97316' }]}>
+            <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>Keep this data long-term?</Text>
+            <Text style={[styles.noticeBody, { color: colors.textSecondary }]}>
+              You are using all features in guest mode and your data stays on this device. If you want to keep data safer and prepare for sync, sign in or create an account.
+            </Text>
+            <TouchableOpacity
+              style={[styles.noticeButton, { backgroundColor: '#F97316' }]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.noticeButtonText}>Go to sign in</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{totalItems}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Expense items</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.statValue, { color: colors.secondary }]}>{totalPurchases}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Expenses logged</Text>
           </View>
         </View>
 
-        {/* Settings */}
-        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            ⚙️ {t('settings')}
-          </Text>
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Experience</Text>
 
-          {/* Theme Toggle */}
           <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>
-                {theme === 'dark' ? '🌙' : '☀️'}
-              </Text>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-                {theme === 'dark' ? t('dark_mode') : t('light_mode')}
+            <View>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Theme</Text>
+              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
+                {settings.theme === 'dark' ? 'Night mode' : 'Light mode'}
               </Text>
             </View>
             <Switch
-              value={theme === 'dark'}
+              value={settings.theme === 'dark'}
               onValueChange={handleThemeToggle}
               trackColor={{ false: '#ddd', true: colors.primary + '60' }}
-              thumbColor={theme === 'dark' ? colors.primary : '#f4f3f4'}
+              thumbColor={settings.theme === 'dark' ? colors.primary : '#f4f3f4'}
             />
           </View>
 
-          {/* Language */}
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => setLanguageModalVisible(true)}
-          >
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🌐</Text>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-                {t('language')}
-              </Text>
+          <TouchableOpacity style={styles.settingRow} onPress={() => setLanguageVisible(true)}>
+            <View>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Language</Text>
+              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>{currentLanguage.nativeLabel}</Text>
             </View>
-            <Text style={[styles.settingValue, { color: colors.textSecondary }]}>
-              {currentLanguage.nativeLabel} ▶
-            </Text>
+            <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
           </TouchableOpacity>
 
-          {/* Currency */}
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => setCurrencyModalVisible(true)}
-          >
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>💰</Text>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-                {t('currency')}
+          <TouchableOpacity style={styles.settingRow} onPress={() => setCurrencyVisible(true)}>
+            <View>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Currency</Text>
+              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
+                {currentCurrency.symbol} {currentCurrency.code}
               </Text>
             </View>
-            <Text style={[styles.settingValue, { color: colors.textSecondary }]}>
-              {currentCurrency.symbol} {currentCurrency.code} ▶
-            </Text>
+            <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
           </TouchableOpacity>
 
-          {/* Notifications */}
           <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔔</Text>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-                {t('notifications')}
-              </Text>
+            <View>
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Notifications</Text>
+              <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>Keep gentle reminders enabled</Text>
             </View>
             <Switch
               value={settings.notificationsEnabled}
@@ -205,235 +204,235 @@ const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity
-          style={[styles.logoutBtn, { borderColor: colors.danger }]}
-          onPress={() => setLogoutModalVisible(true)}
-        >
+        {mode === 'authenticated' ? (
+          <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Security</Text>
+            <TouchableOpacity style={styles.settingRow} onPress={() => setSecurityModal('changePassword')}>
+              <View>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Change password</Text>
+                <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>Update your current password inside the app</Text>
+              </View>
+              <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingRow} onPress={() => setSecurityModal('resetSetup')}>
+              <View>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Reset question</Text>
+                <Text style={[styles.settingMeta, { color: colors.textSecondary }]}>
+                  {user?.reset_question || 'Create or update your local password reset prompt'}
+                </Text>
+              </View>
+              <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        <TouchableOpacity style={[styles.logoutButton, { borderColor: colors.danger }]} onPress={handleLogout}>
           <Text style={[styles.logoutText, { color: colors.danger }]}>
-            🚪 {t('logout')}
+            {mode === 'guest' ? 'Leave guest mode' : 'Log out'}
           </Text>
         </TouchableOpacity>
-
-        {/* App Version */}
-        <Text style={[styles.version, { color: colors.textTertiary }]}>
-          {t('app_version')}: 1.0.0
-        </Text>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Logout Confirmation */}
       <CustomModal
-        visible={logoutModalVisible}
-        onClose={() => setLogoutModalVisible(false)}
+        visible={logoutVisible}
+        onClose={() => setLogoutVisible(false)}
         onConfirm={handleLogout}
-        title={t('logout_confirm_title')}
-        message={t('logout_confirm_msg')}
+        title={mode === 'guest' ? 'Leave guest mode?' : 'Log out?'}
+        message={mode === 'guest' ? 'Your local data remains on this device.' : 'You can sign back in any time.'}
         type="warning"
-        confirmText={t('logout')}
-        cancelText={t('cancel')}
+        confirmText={mode === 'guest' ? 'Leave' : 'Log out'}
+        cancelText="Cancel"
       />
 
-      {/* Language Picker Modal */}
-      <Modal
-        visible={languageModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setLanguageModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHandle} />
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              🌐 {t('language')}
-            </Text>
+      {languageVisible ? (
+        <TouchableOpacity activeOpacity={1} style={styles.modalOverlay} onPress={() => setLanguageVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Choose language</Text>
             <FlatList
               data={LANGUAGES}
               keyExtractor={item => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.pickerItem,
-                    settings.language === item.code && {
-                      backgroundColor: colors.primary + '15',
-                    },
-                  ]}
-                  onPress={() => handleLanguageSelect(item.code as LanguageCode)}
+                  style={[styles.optionRow, { borderBottomColor: colors.border }]}
+                  onPress={() => {
+                    dispatch(setLanguage(item.code as LanguageCode));
+                    i18n.changeLanguage(item.code);
+                    setLanguageVisible(false);
+                  }}
                 >
-                  <Text style={[styles.pickerItemLabel, { color: colors.textPrimary }]}>
-                    {item.nativeLabel}
-                  </Text>
-                  <Text style={[styles.pickerItemSub, { color: colors.textSecondary }]}>
-                    {item.label}
-                  </Text>
-                  {settings.language === item.code && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                  <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{item.nativeLabel}</Text>
+                  <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>{item.label}</Text>
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity
-              onPress={() => setLanguageModalVisible(false)}
-              style={styles.modalClose}
-            >
-              <Text style={[styles.modalCloseText, { color: colors.textSecondary }]}>
-                {t('close')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      ) : null}
 
-      {/* Currency Picker Modal */}
-      <Modal
-        visible={currencyModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setCurrencyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHandle} />
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              💰 {t('currency')}
-            </Text>
+      {currencyVisible ? (
+        <TouchableOpacity activeOpacity={1} style={styles.modalOverlay} onPress={() => setCurrencyVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Choose currency</Text>
             <FlatList
               data={currencies}
               keyExtractor={item => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.pickerItem,
-                    settings.currencyCode === item.code && {
-                      backgroundColor: colors.primary + '15',
-                    },
-                  ]}
-                  onPress={() => handleCurrencySelect(item.code)}
+                  style={[styles.optionRow, { borderBottomColor: colors.border }]}
+                  onPress={() => {
+                    dispatch(setCurrency(item.code));
+                    setCurrencyVisible(false);
+                  }}
                 >
-                  <Text style={[styles.pickerItemLabel, { color: colors.textPrimary }]}>
-                    {item.symbol} {item.code}
-                  </Text>
-                  <Text style={[styles.pickerItemSub, { color: colors.textSecondary }]}>
-                    {item.name}
-                  </Text>
-                  {settings.currencyCode === item.code && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                  <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{item.symbol} {item.code}</Text>
+                  <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>{item.name}</Text>
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity
-              onPress={() => setCurrencyModalVisible(false)}
-              style={styles.modalClose}
-            >
-              <Text style={[styles.modalCloseText, { color: colors.textSecondary }]}>
-                {t('close')}
-              </Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      ) : null}
+
+      {securityModal === 'changePassword' ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.formModal, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Change password</Text>
+            <AnimatedInput label="Current password" value={oldPassword} onChangeText={setOldPassword} isPassword />
+            <AnimatedInput label="New password" value={newPassword} onChangeText={setNewPassword} isPassword />
+            <AnimatedInput label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} isPassword />
+            <GradientButton title="Save password" onPress={submitPasswordChange} />
+            <TouchableOpacity onPress={() => setSecurityModal(null)} style={styles.modalCancel}>
+              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      ) : null}
+
+      {securityModal === 'resetSetup' ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.formModal, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reset question</Text>
+            <AnimatedInput label="Question" value={resetQuestion} onChangeText={setResetQuestion} />
+            <AnimatedInput label="Answer" value={resetAnswer} onChangeText={setResetAnswer} />
+            <GradientButton title="Save reset prompt" onPress={submitResetSetup} />
+            <TouchableOpacity onPress={() => setSecurityModal(null)} style={styles.modalCancel}>
+              <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { padding: spacing.lg },
-  title: { ...typography.title, marginBottom: spacing.xl },
-  // User card
-  userCard: {
+  scroll: { padding: spacing.lg, paddingBottom: 110 },
+  title: { ...typography.title, marginBottom: spacing.lg },
+  heroCard: {
     borderRadius: borderRadius.xl,
     padding: spacing.xxl,
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  avatarLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatar: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  avatarLargeText: { fontSize: 32, color: '#6C63FF', fontWeight: '700' },
-  userName: { ...typography.title },
-  userEmail: { ...typography.body, marginTop: spacing.xs },
-  userMeta: { ...typography.caption, marginTop: spacing.xs },
-  // Stats
-  statsCard: {
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '800',
+  },
+  name: { ...typography.title },
+  handle: { ...typography.body, marginTop: spacing.xs },
+  noticeCard: {
     borderRadius: borderRadius.xl,
-    padding: spacing.xxl,
+    padding: spacing.xl,
+    borderWidth: 1,
     marginBottom: spacing.lg,
   },
-  sectionTitle: { ...typography.subtitle, marginBottom: spacing.lg },
-  statsGrid: { flexDirection: 'row', gap: spacing.lg },
-  statBox: { flex: 1, alignItems: 'center' },
-  statNumber: { ...typography.amount },
-  statName: { ...typography.caption, marginTop: spacing.xs, textAlign: 'center' },
-  // Settings
-  settingsCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.xxl,
-    marginBottom: spacing.lg,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  noticeTitle: { ...typography.subtitle },
+  noticeBody: { ...typography.body, marginTop: spacing.sm },
+  noticeButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderRadius: borderRadius.round,
   },
-  settingLeft: { flexDirection: 'row', alignItems: 'center' },
-  settingIcon: { fontSize: 18, marginRight: spacing.md },
-  settingLabel: { ...typography.body },
-  settingValue: { ...typography.captionBold },
-  // Logout
-  logoutBtn: {
-    borderWidth: 1.5,
-    borderRadius: borderRadius.md,
+  noticeButtonText: {
+    ...typography.captionBold,
+    color: '#FFF7ED',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
     alignItems: 'center',
+  },
+  statValue: { ...typography.amount },
+  statLabel: { ...typography.captionBold, marginTop: spacing.xs },
+  sectionCard: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
     marginBottom: spacing.lg,
   },
+  sectionTitle: { ...typography.subtitle, marginBottom: spacing.md },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+  },
+  settingLabel: { ...typography.bodyBold },
+  settingMeta: { ...typography.caption, marginTop: spacing.xxs, maxWidth: 240 },
+  chevron: { fontSize: 24 },
+  logoutButton: {
+    borderWidth: 1,
+    borderRadius: borderRadius.round,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
   logoutText: { ...typography.bodyBold },
-  version: { ...typography.caption, textAlign: 'center' },
-  // Modal
   modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 1000,
+    elevation: 1000,
   },
-  modalContent: {
+  modalCard: {
     borderTopLeftRadius: borderRadius.xxl,
     borderTopRightRadius: borderRadius.xxl,
     padding: spacing.xxl,
     maxHeight: '70%',
   },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#555',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
+  formModal: {
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
+    padding: spacing.xxl,
+    paddingBottom: spacing.massive,
   },
   modalTitle: { ...typography.title, marginBottom: spacing.lg },
-  pickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  optionRow: {
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.xs,
+    borderBottomWidth: 1,
   },
-  pickerItemLabel: { ...typography.bodyBold, flex: 1 },
-  pickerItemSub: { ...typography.caption },
-  checkmark: { color: '#6C63FF', fontSize: 18, marginLeft: spacing.md },
-  modalClose: { alignItems: 'center', paddingVertical: spacing.lg },
-  modalCloseText: { ...typography.body },
+  optionLabel: { ...typography.bodyBold },
+  optionMeta: { ...typography.caption, marginTop: spacing.xxs },
+  modalCancel: { alignItems: 'center', marginTop: spacing.lg },
+  modalCancelText: { ...typography.body },
 });
 
 export default ProfileScreen;

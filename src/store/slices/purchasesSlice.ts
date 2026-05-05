@@ -6,6 +6,12 @@ import {
   UpdatePurchasePayload,
   PurchaseFilters,
 } from '../../types';
+import {
+  createGuestPurchase,
+  deleteGuestPurchase,
+  listGuestPurchases,
+  updateGuestPurchase,
+} from '../../services/guestExpenseStorage';
 
 interface PurchasesState {
   purchases: Purchase[];
@@ -31,9 +37,20 @@ const initialState: PurchasesState = {
 
 export const fetchPurchases = createAsyncThunk(
   'purchases/fetchAll',
-  async (filters: PurchaseFilters = {}, { rejectWithValue }) => {
+  async (filters: PurchaseFilters = {}, { rejectWithValue, getState }) => {
     try {
-      const response = await purchasesApi.list(filters);
+      const state = getState() as any;
+      let response;
+      if (state.auth.mode === 'guest') {
+        let purchases = await listGuestPurchases();
+        if (filters.item) {purchases = purchases.filter(p => p.item === filters.item);}
+        if (filters.item_name) {purchases = purchases.filter(p => p.item_name.toLowerCase().includes(filters.item_name!.toLowerCase()));}
+        if (filters.month) {purchases = purchases.filter(p => new Date(p.purchased_at).getMonth() + 1 === filters.month);}
+        if (filters.year) {purchases = purchases.filter(p => new Date(p.purchased_at).getFullYear() === filters.year);}
+        response = { count: purchases.length, next: null, previous: null, results: purchases };
+      } else {
+        response = await purchasesApi.list(filters);
+      }
       return { ...response, page: filters.page || 1 };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch purchases');
@@ -43,9 +60,12 @@ export const fetchPurchases = createAsyncThunk(
 
 export const createPurchase = createAsyncThunk(
   'purchases/create',
-  async (payload: CreatePurchasePayload, { rejectWithValue }) => {
+  async (payload: CreatePurchasePayload, { rejectWithValue, getState }) => {
     try {
-      return await purchasesApi.create(payload);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await createGuestPurchase(payload)
+        : await purchasesApi.create(payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create purchase');
     }
@@ -56,10 +76,13 @@ export const updatePurchase = createAsyncThunk(
   'purchases/update',
   async (
     { id, payload }: { id: number; payload: UpdatePurchasePayload },
-    { rejectWithValue },
+    { rejectWithValue, getState },
   ) => {
     try {
-      return await purchasesApi.update(id, payload);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await updateGuestPurchase(id, payload)
+        : await purchasesApi.update(id, payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update purchase');
     }
@@ -68,9 +91,14 @@ export const updatePurchase = createAsyncThunk(
 
 export const deletePurchase = createAsyncThunk(
   'purchases/delete',
-  async (id: number, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue, getState }) => {
     try {
-      await purchasesApi.delete(id);
+      const state = getState() as any;
+      if (state.auth.mode === 'guest') {
+        await deleteGuestPurchase(id);
+      } else {
+        await purchasesApi.delete(id);
+      }
       return id;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete purchase');
@@ -135,7 +163,7 @@ const purchasesSlice = createSlice({
       })
       .addCase(deletePurchase.fulfilled, (state, action: PayloadAction<number>) => {
         state.purchases = state.purchases.filter((p: Purchase) => p.id !== action.payload);
-        state.totalCount -= 1;
+        state.totalCount = Math.max(0, state.totalCount - 1);
       });
   },
 });

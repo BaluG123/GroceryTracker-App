@@ -17,9 +17,9 @@ import { fetchPurchases } from '../store/slices/purchasesSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
-import { getGreeting, getCurrentMonth, getCurrentYear, formatDate, formatTime } from '../utils/date';
+import { getGreeting, getCurrentMonth, getCurrentYear, formatTime } from '../utils/date';
 import { formatPrice } from '../utils/currency';
-import { categoryColors } from '../utils/helpers';
+import { categoryColors, getUnitLabel } from '../utils/helpers';
 import { ListItemSkeleton, CardSkeleton } from '../components/common/SkeletonLoader';
 import OfflineBanner from '../components/common/OfflineBanner';
 import { Category } from '../types';
@@ -56,7 +56,7 @@ const DashboardScreen: React.FC = () => {
   };
 
   const totalSpent = monthlySummary?.total_spent || 0;
-  const totalPurchases = monthlySummary?.total_purchases || 0;
+  const totalExpenses = monthlySummary?.total_purchases || 0;
 
   // Most bought item
   const mostBought = monthlySummary?.item_breakdown?.reduce(
@@ -94,8 +94,8 @@ const DashboardScreen: React.FC = () => {
     legendFontSize: 11,
   }));
 
-  // Recent purchases (last 5)
-  const recentPurchases = purchases.slice(0, 5);
+  // Recent expenses (last 5)
+  const recentExpenses = purchases.slice(0, 5);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -164,7 +164,7 @@ const DashboardScreen: React.FC = () => {
           <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Text style={styles.statIcon}>🛒</Text>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-              {totalPurchases}
+              {totalExpenses}
             </Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
               {t('total_purchases')}
@@ -249,23 +249,23 @@ const DashboardScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Recent Purchases */}
+        {/* Recent Expenses */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
             🕐 {t('recent_purchases')}
           </Text>
         </View>
 
-        {isLoading && recentPurchases.length === 0 ? (
+        {isLoading && recentExpenses.length === 0 ? (
           [1, 2, 3].map(i => <ListItemSkeleton key={i} />)
-        ) : recentPurchases.length === 0 ? (
+        ) : recentExpenses.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t('no_purchases_desc')}
             </Text>
           </View>
         ) : (
-          recentPurchases.map((purchase: any) => (
+          recentExpenses.map((purchase: any) => (
             <View
               key={purchase.id}
               style={[styles.purchaseItem, { backgroundColor: colors.card }]}
@@ -275,7 +275,7 @@ const DashboardScreen: React.FC = () => {
                   {purchase.item_name}
                 </Text>
                 <Text style={[styles.purchaseDetail, { color: colors.textSecondary }]}>
-                  {purchase.quantity} {purchase.item_unit_type} × {formatPrice(purchase.price_per_unit, currencyCode)}
+                  {purchase.quantity} {getUnitLabel(purchase.item_unit_type)} × {formatPrice(purchase.price_per_unit, currencyCode)}
                 </Text>
               </View>
               <View style={styles.purchaseRight}>

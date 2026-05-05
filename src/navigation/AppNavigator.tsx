@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -9,12 +8,13 @@ import { loadSettings } from '../store/slices/settingsSlice';
 import { darkColors, lightColors } from '../theme/colors';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
+import BootLoader from '../components/common/BootLoader';
 
 const RootStack = createStackNavigator();
 
 const AppNavigator: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { token, isAuthChecked } = useAppSelector((state: RootState) => state.auth);
+  const { token, mode, isAuthChecked } = useAppSelector((state: RootState) => state.auth);
   const theme = useAppSelector((state: RootState) => state.settings.theme);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
@@ -24,11 +24,7 @@ const AppNavigator: React.FC = () => {
   }, [dispatch]);
 
   if (!isAuthChecked) {
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <BootLoader theme={theme} />;
   }
 
   return (
@@ -52,7 +48,7 @@ const AppNavigator: React.FC = () => {
       }}
     >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {token ? (
+        {token || mode === 'guest' ? (
           <RootStack.Screen name="Main" component={MainTabs} />
         ) : (
           <RootStack.Screen name="Auth" component={AuthStack} />
@@ -61,13 +57,5 @@ const AppNavigator: React.FC = () => {
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 
 export default AppNavigator;

@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
 import { darkColors, lightColors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
-import { spacing, borderRadius } from '../../theme/spacing';
+import { spacing } from '../../theme/spacing';
 
 interface CategoryChipProps {
   label: string;
@@ -59,19 +59,21 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.round,
+    minHeight: 34,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+    marginRight: 8,
   },
   icon: {
-    fontSize: 14,
-    marginRight: spacing.xs,
+    fontSize: 13,
+    marginRight: 6,
   },
   label: {
-    ...typography.captionBold,
+    ...typography.caption,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
 });
 

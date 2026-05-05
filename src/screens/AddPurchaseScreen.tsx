@@ -1,119 +1,141 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Modal,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
+
+import GradientButton from '../components/common/GradientButton';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { RootState } from '../store';
 import { fetchItems } from '../store/slices/itemsSlice';
 import { createPurchase } from '../store/slices/purchasesSlice';
 import { darkColors, lightColors } from '../theme/colors';
+import { borderRadius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { spacing, borderRadius } from '../theme/spacing';
-import { formatPrice } from '../utils/currency';
-import { unitTypeLabels } from '../utils/helpers';
-import GradientButton from '../components/common/GradientButton';
 import { GroceryItem } from '../types';
+import { formatPrice } from '../utils/currency';
+import {
+  expenseCategories,
+  expenseUnits,
+  getCategoryColor,
+  getCategoryIcon,
+  getCategoryLabel,
+  getUnitIcon,
+  getUnitLabel,
+} from '../utils/helpers';
+
+const paymentMethods = ['cash', 'upi', 'card', 'bank', 'wallet'];
 
 const AddPurchaseScreen: React.FC = () => {
-  const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { items } = useAppSelector((state: RootState) => state.items);
-  const { isCreating } = useAppSelector((state: RootState) => state.purchases);
-  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
+  const { items } = useAppSelector(state => state.items);
+  const { isCreating } = useAppSelector(state => state.purchases);
+  const { currencyCode, theme } = useAppSelector(state => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [selectedItem, setSelectedItem] = useState<GroceryItem | null>(null);
+  const [itemName, setItemName] = useState('');
+  const [category, setCategory] = useState('groceries');
+  const [unitType, setUnitType] = useState('unit');
   const [quantity, setQuantity] = useState('1');
   const [pricePerUnit, setPricePerUnit] = useState('');
+  const [merchantName, setMerchantName] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-  const [showItemPicker, setShowItemPicker] = useState(false);
   const [itemSearch, setItemSearch] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (!items.length) {
       dispatch(fetchItems(1));
     }
   }, [dispatch, items.length]);
 
-  const filteredItems = items.filter(i =>
-    i.name.toLowerCase().includes(itemSearch.toLowerCase()),
+  const filteredItems = useMemo(
+    () => items.filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase())),
+    [itemSearch, items],
   );
+
+  const qty = Number.parseFloat(quantity) || 0;
+  const price = Number.parseFloat(pricePerUnit) || 0;
+  const totalPrice = qty * price;
 
   const selectItem = (item: GroceryItem) => {
     setSelectedItem(item);
-    setPricePerUnit(parseFloat(item.default_price_per_unit).toString());
-    setShowItemPicker(false);
+    setItemName(item.name);
+    setCategory(item.category);
+    setUnitType(item.unit_type);
+    setPricePerUnit(String(Number.parseFloat(item.default_price_per_unit) || 0));
+    setShowPicker(false);
     setItemSearch('');
   };
 
-  const qty = parseFloat(quantity) || 0;
-  const price = parseFloat(pricePerUnit) || 0;
-  const totalPrice = qty * price;
+  const openSavedItemPicker = () => {
+    dispatch(fetchItems(1));
+    setShowPicker(true);
+  };
 
-  const incrementQty = () => setQuantity((qty + 1).toString());
-  const decrementQty = () => {
-    if (qty > 0.5) {setQuantity((qty - 1 > 0 ? qty - 1 : 0.5).toString());}
+  const clearSelectedItem = () => {
+    setSelectedItem(null);
+  };
+
+  const canSubmit = itemName.trim() && qty > 0 && price > 0;
+
+  const resetForm = () => {
+    setSelectedItem(null);
+    setItemName('');
+    setCategory('groceries');
+    setUnitType('unit');
+    setQuantity('1');
+    setPricePerUnit('');
+    setMerchantName('');
+    setPaymentMethod('cash');
+    setLocation('');
+    setNotes('');
+    setShowAdvanced(false);
   };
 
   const handleSubmit = async () => {
-    if (!selectedItem || qty <= 0 || price <= 0) {return;}
+    if (!canSubmit) {
+      return;
+    }
+
     try {
       await dispatch(
         createPurchase({
-          item: selectedItem.id,
+          item: selectedItem?.id ?? null,
+          item_name: itemName.trim(),
+          item_unit_type: unitType,
+          item_category: category,
           quantity: qty,
           price_per_unit: price,
           notes: notes.trim() || undefined,
+          merchant_name: merchantName.trim() || undefined,
+          payment_method: paymentMethod,
+          currency_code: currencyCode,
+          location: location.trim() || undefined,
         }),
       ).unwrap();
-      setShowSuccess(true);
+
       Toast.show({
         type: 'success',
-        text1: '🎉 ' + t('success'),
-        text2: t('purchase_added'),
+        text1: 'Expense saved',
+        text2: `${itemName.trim()} • ${formatPrice(totalPrice, currencyCode)}`,
       });
-      // Reset form
-      setTimeout(() => {
-        setSelectedItem(null);
-        setQuantity('1');
-        setPricePerUnit('');
-        setNotes('');
-        setShowSuccess(false);
-      }, 2000);
-    } catch (err: any) {
-      Toast.show({
-        type: 'error',
-        text1: t('error'),
-        text2: err || t('something_went_wrong'),
-      });
+      resetForm();
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Save failed', text2: String(error) });
     }
   };
-
-  if (showSuccess) {
-    return (
-      <View style={[styles.successContainer, { backgroundColor: colors.background }]}>
-        <Text style={styles.successEmoji}>✅</Text>
-        <Text style={[styles.successTitle, { color: colors.textPrimary }]}>
-          {t('purchase_added')}
-        </Text>
-        <Text style={[styles.successAmount, { color: colors.secondary }]}>
-          {formatPrice(totalPrice, currencyCode)}
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -121,171 +143,254 @@ const AddPurchaseScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            ➕ {t('add_purchase')}
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <Text style={[styles.title, { color: colors.textPrimary }]}>New expense</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Capture a one-off spend or use a saved item for faster entry.
           </Text>
 
-          {/* Item Picker */}
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            {t('select_item')}
-          </Text>
           <TouchableOpacity
-            style={[styles.pickerButton, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
-            onPress={() => setShowItemPicker(true)}
+            style={[styles.selector, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={openSavedItemPicker}
           >
-            <Text
-              style={[
-                styles.pickerText,
-                { color: selectedItem ? colors.textPrimary : colors.textTertiary },
-              ]}
-            >
-              {selectedItem
-                ? `${selectedItem.name} (${unitTypeLabels[selectedItem.unit_type]})`
-                : t('search_items_picker')}
-            </Text>
-            <Text style={{ color: colors.textSecondary }}>▼</Text>
+            <View>
+              <Text style={[styles.selectorLabel, { color: colors.textSecondary }]}>Saved item</Text>
+              <Text style={[styles.selectorValue, { color: colors.textPrimary }]}>
+                {selectedItem ? selectedItem.name : 'Choose from your expense items'}
+              </Text>
+            </View>
+            <Text style={[styles.selectorArrow, { color: colors.textSecondary }]}>▼</Text>
           </TouchableOpacity>
 
-          {/* Quantity with Stepper */}
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            {t('quantity')}
-          </Text>
-          <View style={styles.stepperRow}>
-            <TouchableOpacity
-              onPress={decrementQty}
-              style={[styles.stepperBtn, { backgroundColor: colors.danger + '20' }]}
-            >
-              <Text style={[styles.stepperText, { color: colors.danger }]}>−</Text>
+          {selectedItem ? (
+            <TouchableOpacity onPress={clearSelectedItem} style={styles.clearLink}>
+              <Text style={[styles.clearText, { color: colors.primary }]}>Use as a custom one-off instead</Text>
             </TouchableOpacity>
-            <TextInput
-              style={[styles.qtyInput, { color: colors.textPrimary, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
-              value={quantity}
-              onChangeText={setQuantity}
-              keyboardType="numeric"
-              textAlign="center"
-            />
-            <TouchableOpacity
-              onPress={incrementQty}
-              style={[styles.stepperBtn, { backgroundColor: colors.secondary + '20' }]}
-            >
-              <Text style={[styles.stepperText, { color: colors.secondary }]}>+</Text>
-            </TouchableOpacity>
-          </View>
+          ) : null}
 
-          {/* Price Per Unit */}
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            {t('price_per_unit')}
-          </Text>
-          <View style={[styles.priceInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
-            <Text style={[styles.currencySymbol, { color: colors.textSecondary }]}>₹</Text>
+          <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
             <TextInput
-              style={[styles.priceTextInput, { color: colors.textPrimary }]}
-              value={pricePerUnit}
-              onChangeText={setPricePerUnit}
-              keyboardType="numeric"
-              placeholder="0.00"
+              style={[styles.inputText, { color: colors.textPrimary }]}
+              placeholder="Expense name"
               placeholderTextColor={colors.textTertiary}
+              value={itemName}
+              onChangeText={setItemName}
             />
           </View>
 
-          {/* Total Price */}
-          <View style={[styles.totalCard, { backgroundColor: colors.primary + '15' }]}>
-            <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>
-              {t('total_price')}
-            </Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+            {expenseCategories.map(entry => (
+              <TouchableOpacity
+                key={entry}
+                style={[
+                  styles.categoryPill,
+                  {
+                    backgroundColor: category === entry ? getCategoryColor(entry) + '20' : colors.card,
+                    borderColor: category === entry ? getCategoryColor(entry) : colors.border,
+                  },
+                ]}
+                onPress={() => setCategory(entry)}
+              >
+                <Text style={styles.categoryEmoji}>{getCategoryIcon(entry)}</Text>
+                <Text
+                  style={[
+                    styles.categoryText,
+                    { color: category === entry ? getCategoryColor(entry) : colors.textSecondary },
+                  ]}
+                >
+                  {getCategoryLabel(entry)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Unit</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+            {expenseUnits.map(entry => (
+              <TouchableOpacity
+                key={entry}
+                style={[
+                  styles.categoryPill,
+                  {
+                    backgroundColor: unitType === entry ? colors.primary + '18' : colors.card,
+                    borderColor: unitType === entry ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => setUnitType(entry)}
+              >
+                <Text style={styles.categoryEmoji}>{getUnitIcon(entry)}</Text>
+                <Text
+                  style={[
+                    styles.categoryText,
+                    { color: unitType === entry ? colors.primary : colors.textSecondary },
+                  ]}
+                >
+                  {getUnitLabel(entry)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={styles.row}>
+            <View style={[styles.input, styles.rowField, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Quantity"
+                placeholderTextColor={colors.textTertiary}
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={[styles.input, styles.rowField, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+              <Text style={[styles.currencySymbol, { color: colors.textSecondary }]}>
+                {currencyCode === 'INR' ? '₹' : currencyCode}
+              </Text>
+              <TextInput
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Price per unit"
+                placeholderTextColor={colors.textTertiary}
+                value={pricePerUnit}
+                onChangeText={setPricePerUnit}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <View style={[styles.totalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total</Text>
             <Text style={[styles.totalAmount, { color: colors.primary }]}>
               {formatPrice(totalPrice, currencyCode)}
             </Text>
           </View>
 
-          {/* Notes */}
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            {t('notes')}
-          </Text>
-          <TextInput
-            style={[styles.notesInput, { color: colors.textPrimary, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t('notes_placeholder')}
-            placeholderTextColor={colors.textTertiary}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
+          <TouchableOpacity onPress={() => setShowAdvanced(value => !value)} style={styles.advancedToggle}>
+            <Text style={[styles.advancedText, { color: colors.primary }]}>
+              {showAdvanced ? 'Hide details' : 'Add merchant, payment, and notes'}
+            </Text>
+          </TouchableOpacity>
+
+          {showAdvanced ? (
+            <>
+              <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.inputText, { color: colors.textPrimary }]}
+                  placeholder="Merchant or payee"
+                  placeholderTextColor={colors.textTertiary}
+                  value={merchantName}
+                  onChangeText={setMerchantName}
+                />
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+                {paymentMethods.map(method => (
+                  <TouchableOpacity
+                    key={method}
+                    onPress={() => setPaymentMethod(method)}
+                    style={[
+                      styles.categoryPill,
+                      {
+                        backgroundColor: paymentMethod === method ? colors.secondary + '20' : colors.card,
+                        borderColor: paymentMethod === method ? colors.secondary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        { color: paymentMethod === method ? colors.secondary : colors.textSecondary },
+                      ]}
+                    >
+                      {method.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.inputText, { color: colors.textPrimary }]}
+                  placeholder="Location"
+                  placeholderTextColor={colors.textTertiary}
+                  value={location}
+                  onChangeText={setLocation}
+                />
+              </View>
+
+              <View style={[styles.notesInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.notesText, { color: colors.textPrimary }]}
+                  placeholder="Notes"
+                  placeholderTextColor={colors.textTertiary}
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </>
+          ) : null}
 
           <GradientButton
-            title={t('submit')}
-            icon="✅"
+            title="Save expense"
             onPress={handleSubmit}
             loading={isCreating}
-            disabled={!selectedItem || qty <= 0 || price <= 0}
+            disabled={!canSubmit}
             style={{ marginTop: spacing.xxl }}
           />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Item Picker Modal */}
-      <Modal
-        visible={showItemPicker}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowItemPicker(false)}
-      >
-        <View style={[styles.pickerOverlay]}>
-          <View style={[styles.pickerContent, { backgroundColor: colors.card }]}>
+      {showPicker ? (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <View style={styles.modalHandle} />
-            <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>
-              {t('select_item')}
-            </Text>
-            <View style={[styles.pickerSearch, { backgroundColor: colors.inputBackground }]}>
-              <Text style={{ marginRight: 8 }}>🔍</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Pick a saved item</Text>
+
+            <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
               <TextInput
-                style={[styles.pickerSearchInput, { color: colors.textPrimary }]}
-                placeholder={t('search_items')}
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Search saved items"
                 placeholderTextColor={colors.textTertiary}
                 value={itemSearch}
                 onChangeText={setItemSearch}
                 autoFocus
               />
             </View>
+
             <FlatList
               data={filteredItems}
-              keyExtractor={i => i.id.toString()}
+              keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.pickerItem, { borderBottomColor: colors.border }]}
+                  style={[styles.pickRow, { borderBottomColor: colors.border }]}
                   onPress={() => selectItem(item)}
                 >
-                  <Text style={[styles.pickerItemName, { color: colors.textPrimary }]}>
-                    {item.name}
-                  </Text>
-                  <Text style={[styles.pickerItemMeta, { color: colors.textSecondary }]}>
-                    {unitTypeLabels[item.unit_type]} · {formatPrice(item.default_price_per_unit, currencyCode)}
-                  </Text>
+                  <View>
+                    <Text style={[styles.pickName, { color: colors.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.pickMeta, { color: colors.textSecondary }]}>
+                      {getUnitLabel(item.unit_type)} · {formatPrice(item.default_price_per_unit, currencyCode)}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.textSecondary }}>{getCategoryIcon(item.category)}</Text>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <Text style={[styles.emptyPicker, { color: colors.textTertiary }]}>
-                  {t('no_items')}
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  No saved expense items found.
                 </Text>
               }
             />
-            <TouchableOpacity
-              onPress={() => setShowItemPicker(false)}
-              style={styles.pickerClose}
-            >
-              <Text style={[styles.pickerCloseText, { color: colors.textSecondary }]}>
-                {t('close')}
-              </Text>
+
+            <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.closePicker}>
+              <Text style={[styles.closePickerText, { color: colors.textSecondary }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      ) : null}
     </View>
   );
 };
@@ -298,114 +403,102 @@ const styles = StyleSheet.create({
     paddingTop: spacing.massive + spacing.lg,
     paddingBottom: 120,
   },
-  title: { ...typography.title, marginBottom: spacing.xxl },
-  label: { ...typography.captionBold, marginBottom: spacing.sm },
-  pickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  title: { ...typography.title },
+  subtitle: { ...typography.body, marginTop: spacing.sm, marginBottom: spacing.xl },
+  selector: {
     borderWidth: 1,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  pickerText: { ...typography.body, flex: 1 },
-  stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
-  stepperBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepperText: { fontSize: 24, fontWeight: '700' },
-  qtyInput: {
-    flex: 1,
-    height: 52,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    ...typography.subtitle,
-  },
-  priceInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  selectorLabel: { ...typography.captionBold },
+  selectorValue: { ...typography.bodyBold, marginTop: spacing.xxs },
+  selectorArrow: { fontSize: 14 },
+  clearLink: { marginBottom: spacing.lg },
+  clearText: { ...typography.captionBold },
+  input: {
     borderWidth: 1,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
-    height: 52,
-    marginBottom: spacing.xl,
-  },
-  currencySymbol: { ...typography.bodyBold, marginRight: spacing.sm },
-  priceTextInput: { flex: 1, ...typography.body },
-  totalCard: {
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
+    minHeight: 52,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
-  totalLabel: { ...typography.caption },
+  inputText: { flex: 1, ...typography.body },
+  sectionLabel: { ...typography.captionBold, marginBottom: spacing.sm },
+  categoryRow: { paddingBottom: spacing.sm },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: borderRadius.round,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginRight: spacing.sm,
+  },
+  categoryEmoji: { marginRight: 6 },
+  categoryText: { ...typography.captionBold },
+  row: { flexDirection: 'row', gap: spacing.md },
+  rowField: { flex: 1 },
+  currencySymbol: { ...typography.bodyBold, marginRight: spacing.sm },
+  totalCard: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    alignItems: 'center',
+  },
+  totalLabel: { ...typography.captionBold },
   totalAmount: { ...typography.amount, marginTop: spacing.xs },
+  advancedToggle: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  advancedText: { ...typography.captionBold },
   notesInput: {
     borderWidth: 1,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
-    minHeight: 80,
-    ...typography.body,
-    marginBottom: spacing.md,
+    minHeight: 104,
+    marginBottom: spacing.lg,
   },
-  // Success
-  successContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successEmoji: { fontSize: 72, marginBottom: spacing.xl },
-  successTitle: { ...typography.title, marginBottom: spacing.md },
-  successAmount: { ...typography.amountLarge },
-  // Picker modal
-  pickerOverlay: {
+  notesText: { ...typography.body, minHeight: 80 },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+    elevation: 1000,
   },
-  pickerContent: {
+  modalCard: {
     borderTopLeftRadius: borderRadius.xxl,
     borderTopRightRadius: borderRadius.xxl,
     padding: spacing.xxl,
-    maxHeight: '70%',
+    maxHeight: '72%',
   },
   modalHandle: {
-    width: 40,
+    width: 42,
     height: 4,
-    backgroundColor: '#555',
     borderRadius: 2,
+    backgroundColor: '#555',
     alignSelf: 'center',
     marginBottom: spacing.lg,
   },
-  pickerTitle: { ...typography.title, marginBottom: spacing.lg },
-  pickerSearch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    height: 44,
-    marginBottom: spacing.md,
-  },
-  pickerSearchInput: { flex: 1, ...typography.body },
-  pickerItem: {
+  modalTitle: { ...typography.title, marginBottom: spacing.lg },
+  pickRow: {
     paddingVertical: spacing.md,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
   },
-  pickerItemName: { ...typography.bodyBold },
-  pickerItemMeta: { ...typography.caption, marginTop: spacing.xxs },
-  emptyPicker: { ...typography.body, textAlign: 'center', padding: spacing.xxl },
-  pickerClose: { alignItems: 'center', paddingVertical: spacing.lg },
-  pickerCloseText: { ...typography.body },
+  pickName: { ...typography.bodyBold },
+  pickMeta: { ...typography.caption, marginTop: spacing.xxs },
+  emptyText: { ...typography.body, textAlign: 'center', paddingVertical: spacing.xl },
+  closePicker: { alignItems: 'center', paddingTop: spacing.lg },
+  closePickerText: { ...typography.body },
 });
 
 export default AddPurchaseScreen;

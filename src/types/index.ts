@@ -3,6 +3,8 @@
 // ============================================================
 
 // Auth
+export type AuthMode = 'authenticated' | 'guest';
+
 export interface User {
   id: number;
   username: string;
@@ -10,6 +12,7 @@ export interface User {
   first_name: string;
   last_name: string;
   date_joined?: string;
+  reset_question?: string;
 }
 
 export interface AuthResponse {
@@ -28,48 +31,54 @@ export interface RegisterPayload {
   password: string;
   first_name: string;
   last_name: string;
+  reset_question?: string;
+  reset_answer?: string;
+}
+
+export interface ForgotPasswordPayload {
+  username: string;
+  reset_answer: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ChangePasswordPayload {
+  old_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ConfigureResetPayload {
+  reset_question: string;
+  reset_answer: string;
 }
 
 // Items
-export type UnitType =
-  | 'litre'
-  | 'ml'
-  | 'kg'
-  | 'gram'
-  | 'packet'
-  | 'piece'
-  | 'dozen'
-  | 'bundle'
-  | 'box'
-  | 'bottle'
-  | 'can'
-  | 'other';
+export type UnitType = string;
+export type Category = string;
 
-export type Category =
-  | 'dairy'
-  | 'vegetables'
-  | 'fruits'
-  | 'grains'
-  | 'snacks'
-  | 'beverages'
-  | 'household'
-  | 'other';
-
-export interface GroceryItem {
+export interface ExpenseItem {
   id: number;
   name: string;
   unit_type: UnitType;
+  unit_label?: string;
   default_price_per_unit: string; // Decimal string from API
   category: Category;
+  description?: string;
+  is_active?: boolean;
   purchase_count: number;
   total_spent: string;
 }
+
+export type GroceryItem = ExpenseItem;
 
 export interface CreateItemPayload {
   name: string;
   unit_type: UnitType;
   default_price_per_unit: number;
   category: Category;
+  description?: string;
+  is_active?: boolean;
 }
 
 export interface UpdateItemPayload {
@@ -77,35 +86,56 @@ export interface UpdateItemPayload {
   unit_type?: UnitType;
   default_price_per_unit?: number;
   category?: Category;
+  description?: string;
+  is_active?: boolean;
 }
 
 // Purchases
 export interface Purchase {
   id: number;
-  item: number;
+  item: number | null;
   item_name: string;
   item_unit_type: UnitType;
+  item_category?: Category;
   quantity: string;
   price_per_unit: string;
   total_price: string;
   purchased_at: string; // ISO datetime
   notes: string;
+  merchant_name?: string;
+  payment_method?: string;
+  currency_code?: string;
+  location?: string;
 }
 
 export interface CreatePurchasePayload {
-  item: number;
+  item?: number | null;
+  item_name?: string;
+  item_unit_type?: UnitType;
+  item_category?: Category;
   quantity: number;
-  price_per_unit: number;
+  price_per_unit?: number;
   purchased_at?: string;
   notes?: string;
+  merchant_name?: string;
+  payment_method?: string;
+  currency_code?: string;
+  location?: string;
 }
 
 export interface UpdatePurchasePayload {
-  item?: number;
+  item?: number | null;
+  item_name?: string;
+  item_unit_type?: UnitType;
+  item_category?: Category;
   quantity?: number;
   price_per_unit?: number;
   purchased_at?: string;
   notes?: string;
+  merchant_name?: string;
+  payment_method?: string;
+  currency_code?: string;
+  location?: string;
 }
 
 export interface PurchaseFilters {
@@ -134,6 +164,8 @@ export interface DailyBreakdownEntry {
 }
 
 export interface MonthlySummary {
+  month?: number;
+  year?: number;
   total_spent: number;
   total_purchases: number;
   item_breakdown: ItemBreakdown[];
@@ -154,29 +186,46 @@ export interface ItemFrequencyReport {
 }
 
 export interface DailyPurchaseDetail {
+  id?: number;
   item_name: string;
+  unit_type?: UnitType;
   quantity: number;
   price_per_unit: number;
   total_price: number;
   time: string;
   notes: string;
+  merchant_name?: string;
+  payment_method?: string;
+  currency_code?: string;
+  location?: string;
 }
 
 export interface DailyBreakdownSingle {
   date: string;
   total_spent: number;
+  purchase_count?: number;
   purchases: DailyPurchaseDetail[];
 }
 
 export interface DailyBreakdownDay {
   date: string;
   total_spent: number;
+  purchase_count?: number;
   purchases: DailyPurchaseDetail[];
 }
 
 export interface DailyBreakdownMonth {
+  month?: number;
+  year?: number;
   month_total: number;
   days: DailyBreakdownDay[];
+}
+
+export interface GuestExpenseData {
+  items: ExpenseItem[];
+  purchases: Purchase[];
+  nextItemId: number;
+  nextPurchaseId: number;
 }
 
 // Paginated response

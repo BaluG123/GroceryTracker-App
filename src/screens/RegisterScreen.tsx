@@ -22,6 +22,7 @@ import { spacing, borderRadius } from '../theme/spacing';
 import { getPasswordStrength } from '../utils/helpers';
 import AnimatedInput from '../components/common/AnimatedInput';
 import GradientButton from '../components/common/GradientButton';
+import BrandLogo from '../components/common/BrandLogo';
 
 type Nav = StackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -38,6 +39,8 @@ const RegisterScreen: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetQuestion, setResetQuestion] = useState('');
+  const [resetAnswer, setResetAnswer] = useState('');
 
   const strength = getPasswordStrength(password);
   const canSubmit =
@@ -45,7 +48,9 @@ const RegisterScreen: React.FC = () => {
     lastName.trim() &&
     username.trim() &&
     email.trim() &&
-    password.length >= 6;
+    password.length >= 8 &&
+    resetQuestion.trim() &&
+    resetAnswer.trim();
 
   const handleRegister = () => {
     if (!canSubmit) {return;}
@@ -57,6 +62,8 @@ const RegisterScreen: React.FC = () => {
         username: username.trim(),
         email: email.trim(),
         password,
+        reset_question: resetQuestion.trim(),
+        reset_answer: resetAnswer.trim(),
       }),
     );
   };
@@ -76,12 +83,12 @@ const RegisterScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.emoji}>📝</Text>
+            <BrandLogo color={colors.textPrimary} subtitle="Secure account setup" />
             <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {t('sign_up')}
+              Create your space
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {t('tagline')}
+              Start with a synced account so your data stays ready for the long run.
             </Text>
           </View>
 
@@ -141,6 +148,20 @@ const RegisterScreen: React.FC = () => {
               onChangeText={setPassword}
               isPassword
               autoCapitalize="none"
+            />
+
+            <AnimatedInput
+              label="Reset question"
+              leftIcon="❓"
+              value={resetQuestion}
+              onChangeText={setResetQuestion}
+            />
+
+            <AnimatedInput
+              label="Reset answer"
+              leftIcon="🗝️"
+              value={resetAnswer}
+              onChangeText={setResetAnswer}
             />
 
             {/* Password Strength */}
@@ -206,10 +227,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxl,
   },
-  emoji: { fontSize: 48, marginBottom: spacing.md },
   title: {
     ...typography.heading,
     textAlign: 'center',
+    marginTop: spacing.lg,
   },
   subtitle: {
     ...typography.body,

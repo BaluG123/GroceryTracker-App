@@ -1,84 +1,65 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   FlatList,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-  Modal,
-  ScrollView,
-  Animated,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { RootState } from '../store';
-import { fetchItems, createItem, deleteItem, updateItem } from '../store/slices/itemsSlice';
-import { darkColors, lightColors } from '../theme/colors';
-import { typography } from '../theme/typography';
-import { spacing, borderRadius } from '../theme/spacing';
-import { formatPrice } from '../utils/currency';
-import {
-  categoryLabels,
-  categoryIcons,
-  categoryColors,
-  unitTypeLabels,
-  unitTypeIcons,
-} from '../utils/helpers';
-import { Category, UnitType, GroceryItem } from '../types';
-import CustomModal from '../components/common/CustomModal';
-import GradientButton from '../components/common/GradientButton';
+
 import CategoryChip from '../components/common/CategoryChip';
+import CustomModal from '../components/common/CustomModal';
 import EmptyState from '../components/common/EmptyState';
 import FAB from '../components/common/FAB';
-import { ListItemSkeleton } from '../components/common/SkeletonLoader';
+import GradientButton from '../components/common/GradientButton';
 import OfflineBanner from '../components/common/OfflineBanner';
-
-const CATEGORIES: Category[] = [
-  'dairy', 'vegetables', 'fruits', 'grains',
-  'snacks', 'beverages', 'household', 'other',
-];
-
-const UNIT_TYPES: UnitType[] = [
-  'kg', 'gram', 'litre', 'ml', 'packet', 'piece',
-  'dozen', 'bundle', 'box', 'bottle', 'can', 'other',
-];
+import { ListItemSkeleton } from '../components/common/SkeletonLoader';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { createItem, deleteItem, fetchItems, updateItem } from '../store/slices/itemsSlice';
+import { darkColors, lightColors } from '../theme/colors';
+import { borderRadius, spacing } from '../theme/spacing';
+import { typography } from '../theme/typography';
+import { GroceryItem, Category, UnitType } from '../types';
+import { formatPrice } from '../utils/currency';
+import {
+  expenseCategories,
+  expenseUnits,
+  getCategoryColor,
+  getCategoryIcon,
+  getCategoryLabel,
+  getUnitIcon,
+  getUnitLabel,
+} from '../utils/helpers';
 
 const ItemsScreen: React.FC = () => {
-  const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { items, isLoading, isCreating } = useAppSelector((state: RootState) => state.items);
-  const { currencyCode, theme } = useAppSelector((state: RootState) => state.settings);
+  const { items, isLoading, isCreating } = useAppSelector(state => state.items);
+  const { currencyCode, theme } = useAppSelector(state => state.settings);
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [deleteVisible, setDeleteVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
-  const [editItem, setEditItem] = useState<GroceryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Add/Edit form state
   const [formName, setFormName] = useState('');
-  const [formUnit, setFormUnit] = useState<UnitType>('kg');
+  const [formUnit, setFormUnit] = useState<UnitType>('unit');
   const [formPrice, setFormPrice] = useState('');
-  const [formCategory, setFormCategory] = useState<Category>('vegetables');
+  const [formCategory, setFormCategory] = useState<Category>('groceries');
+  const [formDescription, setFormDescription] = useState('');
 
   useEffect(() => {
     dispatch(fetchItems(1));
   }, [dispatch]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await dispatch(fetchItems(1));
-    setRefreshing(false);
-  };
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
@@ -86,112 +67,135 @@ const ItemsScreen: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const openAddModal = () => {
-    setEditItem(null);
+  const resetForm = () => {
+    setEditingItem(null);
     setFormName('');
-    setFormUnit('kg');
+    setFormUnit('unit');
     setFormPrice('');
-    setFormCategory('vegetables');
-    setShowAddModal(true);
+    setFormCategory('groceries');
+    setFormDescription('');
   };
 
-  const openEditModal = (item: GroceryItem) => {
-    setEditItem(item);
+  const openCreate = () => {
+    resetForm();
+    setShowEditor(true);
+  };
+
+  const openEdit = (item: GroceryItem) => {
+    setEditingItem(item);
     setFormName(item.name);
     setFormUnit(item.unit_type);
-    setFormPrice(parseFloat(item.default_price_per_unit).toString());
+    setFormPrice(String(Number.parseFloat(item.default_price_per_unit) || 0));
     setFormCategory(item.category);
-    setShowAddModal(true);
+    setFormDescription(item.description || '');
+    setShowEditor(true);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchItems(1));
+    setRefreshing(false);
   };
 
   const handleSubmit = async () => {
-    if (!formName.trim() || !formPrice) {return;}
+    if (!formName.trim() || !formPrice.trim()) {
+      return;
+    }
+
     try {
-      if (editItem) {
-        await dispatch(updateItem({
-          id: editItem.id,
-          payload: {
+      if (editingItem) {
+        await dispatch(
+          updateItem({
+            id: editingItem.id,
+            payload: {
+              name: formName.trim(),
+              unit_type: formUnit,
+              default_price_per_unit: Number.parseFloat(formPrice),
+              category: formCategory,
+              description: formDescription.trim(),
+            },
+          }),
+        ).unwrap();
+        Toast.show({ type: 'success', text1: 'Saved', text2: 'Expense item updated' });
+      } else {
+        await dispatch(
+          createItem({
             name: formName.trim(),
             unit_type: formUnit,
-            default_price_per_unit: parseFloat(formPrice),
+            default_price_per_unit: Number.parseFloat(formPrice),
             category: formCategory,
-          },
-        })).unwrap();
-        Toast.show({ type: 'success', text1: t('success'), text2: t('edit_item') });
-      } else {
-        await dispatch(createItem({
-          name: formName.trim(),
-          unit_type: formUnit,
-          default_price_per_unit: parseFloat(formPrice),
-          category: formCategory,
-        })).unwrap();
-        Toast.show({ type: 'success', text1: t('success'), text2: t('add_item') });
+            description: formDescription.trim(),
+          }),
+        ).unwrap();
+        Toast.show({ type: 'success', text1: 'Created', text2: 'Expense item added' });
       }
-      setShowAddModal(false);
-    } catch (err: any) {
-      Toast.show({ type: 'error', text1: t('error'), text2: err || t('something_went_wrong') });
+      setShowEditor(false);
+      resetForm();
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Error', text2: String(error) });
     }
   };
 
   const confirmDelete = (id: number) => {
     setItemToDelete(id);
-    setDeleteModalVisible(true);
+    setDeleteVisible(true);
   };
 
   const handleDelete = async () => {
-    if (itemToDelete) {
-      await dispatch(deleteItem(itemToDelete));
-      setDeleteModalVisible(false);
-      Toast.show({ type: 'success', text1: t('success'), text2: 'Item deleted' });
+    if (!itemToDelete) {
+      return;
     }
+
+    await dispatch(deleteItem(itemToDelete));
+    setDeleteVisible(false);
+    Toast.show({ type: 'success', text1: 'Archived', text2: 'Expense item archived' });
   };
-
-  const renderRightActions = (id: number) => (
-    <TouchableOpacity
-      style={[styles.swipeAction, { backgroundColor: colors.danger }]}
-      onPress={() => confirmDelete(id)}
-    >
-      <Text style={styles.swipeText}>🗑️ {t('delete')}</Text>
-    </TouchableOpacity>
-  );
-
-  const renderLeftActions = (item: GroceryItem) => (
-    <TouchableOpacity
-      style={[styles.swipeAction, { backgroundColor: '#3B82F6' }]}
-      onPress={() => openEditModal(item)}
-    >
-      <Text style={styles.swipeText}>✏️ {t('edit')}</Text>
-    </TouchableOpacity>
-  );
 
   const renderItem = ({ item }: { item: GroceryItem }) => (
     <Swipeable
-      renderRightActions={() => renderRightActions(item.id)}
-      renderLeftActions={() => renderLeftActions(item)}
-      overshootRight={false}
+      renderRightActions={() => (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: colors.danger }]}
+          onPress={() => confirmDelete(item.id)}
+        >
+          <Text style={styles.swipeText}>Archive</Text>
+        </TouchableOpacity>
+      )}
+      renderLeftActions={() => (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: colors.secondary }]}
+          onPress={() => openEdit(item)}
+        >
+          <Text style={styles.swipeText}>Edit</Text>
+        </TouchableOpacity>
+      )}
       overshootLeft={false}
+      overshootRight={false}
     >
-      <View style={[styles.itemCard, { backgroundColor: colors.card }]}>
-        <View style={[styles.itemIcon, { backgroundColor: categoryColors[item.category] + '20' }]}>
-          <Text style={styles.itemEmoji}>{categoryIcons[item.category]}</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.iconWrap, { backgroundColor: getCategoryColor(item.category) + '20' }]}>
+          <Text style={styles.icon}>{getCategoryIcon(item.category)}</Text>
         </View>
-        <View style={styles.itemContent}>
-          <Text style={[styles.itemName, { color: colors.textPrimary }]}>
-            {item.name}
+
+        <View style={styles.content}>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>{item.name}</Text>
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            {getUnitIcon(item.unit_type)} {getUnitLabel(item.unit_type)} · {formatPrice(item.default_price_per_unit, currencyCode)}
           </Text>
-          <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-            {unitTypeIcons[item.unit_type]} {unitTypeLabels[item.unit_type]} · {formatPrice(item.default_price_per_unit, currencyCode)}
-          </Text>
+          {!!item.description && (
+            <Text style={[styles.description, { color: colors.textTertiary }]} numberOfLines={1}>
+              {item.description}
+            </Text>
+          )}
         </View>
-        <View style={styles.itemRight}>
-          <Text style={[styles.itemSpent, { color: colors.primary }]}>
+
+        <View style={styles.right}>
+          <Text style={[styles.total, { color: colors.primary }]}>
             {formatPrice(item.total_spent, currencyCode)}
           </Text>
-          <View style={[styles.countBadge, { backgroundColor: colors.primary + '20' }]}>
-            <Text style={[styles.countText, { color: colors.primary }]}>
-              {item.purchase_count}×
-            </Text>
-          </View>
+          <Text style={[styles.count, { color: colors.textSecondary }]}>
+            {item.purchase_count} entries
+          </Text>
         </View>
       </View>
     </Swipeable>
@@ -201,56 +205,55 @@ const ItemsScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: spacing.massive }]}>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-          📦 {t('my_items')}
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Expense items</Text>
+          <TouchableOpacity
+            onPress={openCreate}
+            style={[styles.headerAddButton, { backgroundColor: colors.primary }]}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.headerAddText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+          Reusable templates for the things you spend on often.
         </Text>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: colors.inputBackground }]}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={[styles.searchInput, { color: colors.textPrimary }]}
-            placeholder={t('search_items')}
-            placeholderTextColor={colors.textTertiary}
-            value={search}
-            onChangeText={setSearch}
-          />
+      <View style={[styles.filterPanel, { backgroundColor: colors.background }]}>
+        <View style={styles.searchWrap}>
+          <View style={[styles.searchBar, { backgroundColor: colors.inputBackground }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={[styles.searchInput, { color: colors.textPrimary }]}
+              placeholder="Search expense items"
+              placeholderTextColor={colors.textTertiary}
+              value={search}
+              onChangeText={setSearch}
+            />
+          </View>
         </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <CategoryChip label="All" isSelected={selectedCategory === 'all'} onPress={() => setSelectedCategory('all')} />
+          {expenseCategories.map(category => (
+            <CategoryChip
+              key={category}
+              label={getCategoryLabel(category)}
+              icon={getCategoryIcon(category)}
+              color={getCategoryColor(category)}
+              isSelected={selectedCategory === category}
+              onPress={() => setSelectedCategory(category)}
+            />
+          ))}
+        </ScrollView>
       </View>
 
-      {/* Category Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipScroll}
-        contentContainerStyle={styles.chipContainer}
-      >
-        <CategoryChip
-          label={t('all')}
-          isSelected={selectedCategory === 'all'}
-          onPress={() => setSelectedCategory('all')}
-        />
-        {CATEGORIES.map(cat => (
-          <CategoryChip
-            key={cat}
-            label={t(cat)}
-            icon={categoryIcons[cat]}
-            isSelected={selectedCategory === cat}
-            onPress={() => setSelectedCategory(cat)}
-            color={categoryColors[cat]}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Items List */}
       {isLoading && items.length === 0 ? (
         <View style={styles.skeletonList}>
-          {[1, 2, 3, 4, 5].map(i => (
-            <ListItemSkeleton key={i} />
+          {[1, 2, 3, 4].map(index => (
+            <ListItemSkeleton key={index} />
           ))}
         </View>
       ) : (
@@ -259,44 +262,31 @@ const ItemsScreen: React.FC = () => {
           keyExtractor={item => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
             <EmptyState
-              title={t('no_items')}
-              description={t('no_items_desc')}
-              icon="🛒"
-            />
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
+              title="No expense items yet"
+              description="Create reusable items like Rent, Coffee, Cab, Internet, or Vegetables."
+              icon="🧾"
             />
           }
         />
       )}
 
-      <FAB onPress={openAddModal} />
+      <FAB onPress={openCreate} />
 
-      {/* Delete Modal */}
       <CustomModal
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
         onConfirm={handleDelete}
-        title={t('delete_confirm_title')}
-        message={t('delete_confirm_msg')}
-        type="delete"
-        confirmText={t('delete')}
-        cancelText={t('cancel')}
+        title="Archive item?"
+        message="This hides the item from your active list but keeps your expense history safe."
+        type="warning"
+        confirmText="Archive"
+        cancelText="Cancel"
       />
 
-      {/* Add/Edit Modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowAddModal(false)}
-      >
+      {showEditor ? (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
@@ -304,26 +294,22 @@ const ItemsScreen: React.FC = () => {
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHandle} />
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {editItem ? t('edit_item') : t('add_item')}
+              {editingItem ? 'Edit expense item' : 'New expense item'}
             </Text>
 
-            {/* Item name */}
-            <View style={[styles.formInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+            <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
               <TextInput
-                style={[styles.formInputText, { color: colors.textPrimary }]}
-                placeholder={t('item_name')}
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Name"
                 placeholderTextColor={colors.textTertiary}
                 value={formName}
                 onChangeText={setFormName}
               />
             </View>
 
-            {/* Unit Type */}
-            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-              {t('unit_type')}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitScroll}>
-              {UNIT_TYPES.map(unit => (
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Unit</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitRow}>
+              {expenseUnits.map(unit => (
                 <TouchableOpacity
                   key={unit}
                   onPress={() => setFormUnit(unit)}
@@ -335,25 +321,19 @@ const ItemsScreen: React.FC = () => {
                     },
                   ]}
                 >
-                  <Text style={{ fontSize: 14 }}>{unitTypeIcons[unit]}</Text>
-                  <Text
-                    style={[
-                      styles.unitLabel,
-                      { color: formUnit === unit ? colors.primary : colors.textSecondary },
-                    ]}
-                  >
-                    {unitTypeLabels[unit]}
+                  <Text style={styles.unitEmoji}>{getUnitIcon(unit)}</Text>
+                  <Text style={[styles.unitLabel, { color: formUnit === unit ? colors.primary : colors.textSecondary }]}>
+                    {getUnitLabel(unit)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            {/* Default Price */}
-            <View style={[styles.formInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+            <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
               <Text style={[styles.currencySymbol, { color: colors.textSecondary }]}>₹</Text>
               <TextInput
-                style={[styles.formInputText, { color: colors.textPrimary }]}
-                placeholder={t('default_price')}
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Default price"
                 placeholderTextColor={colors.textTertiary}
                 value={formPrice}
                 onChangeText={setFormPrice}
@@ -361,42 +341,44 @@ const ItemsScreen: React.FC = () => {
               />
             </View>
 
-            {/* Category */}
-            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-              {t('select_category')}
-            </Text>
+            <View style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.inputText, { color: colors.textPrimary }]}
+                placeholder="Description or usage"
+                placeholderTextColor={colors.textTertiary}
+                value={formDescription}
+                onChangeText={setFormDescription}
+              />
+            </View>
+
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
             <View style={styles.categoryGrid}>
-              {CATEGORIES.map(cat => (
+              {expenseCategories.map(category => (
                 <CategoryChip
-                  key={cat}
-                  label={t(cat)}
-                  icon={categoryIcons[cat]}
-                  isSelected={formCategory === cat}
-                  onPress={() => setFormCategory(cat)}
-                  color={categoryColors[cat]}
+                  key={category}
+                  label={getCategoryLabel(category)}
+                  icon={getCategoryIcon(category)}
+                  color={getCategoryColor(category)}
+                  isSelected={formCategory === category}
+                  onPress={() => setFormCategory(category)}
                 />
               ))}
             </View>
 
             <GradientButton
-              title={editItem ? t('save') : t('add_item')}
+              title={editingItem ? 'Save changes' : 'Create item'}
               onPress={handleSubmit}
               loading={isCreating}
-              disabled={!formName.trim() || !formPrice}
+              disabled={!formName.trim() || !formPrice.trim()}
               style={{ marginTop: spacing.lg }}
             />
 
-            <TouchableOpacity
-              onPress={() => setShowAddModal(false)}
-              style={styles.closeButton}
-            >
-              <Text style={[styles.closeText, { color: colors.textSecondary }]}>
-                {t('cancel')}
-              </Text>
+            <TouchableOpacity onPress={() => setShowEditor(false)} style={styles.cancel}>
+              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      ) : null}
     </View>
   );
 };
@@ -407,68 +389,92 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   headerTitle: { ...typography.title },
-  searchContainer: { paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+  headerAddButton: {
+    borderRadius: borderRadius.round,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  headerAddText: {
+    ...typography.captionBold,
+    color: '#FFF',
+  },
+  headerSubtitle: { ...typography.body, marginTop: spacing.xs },
+  filterPanel: {
+    zIndex: 10,
+    elevation: 2,
+    paddingBottom: spacing.xs,
+  },
+  searchWrap: { paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
-    height: 46,
+    height: 48,
   },
   searchIcon: { fontSize: 16, marginRight: spacing.sm },
   searchInput: { flex: 1, ...typography.body },
-  chipScroll: { maxHeight: 50, marginBottom: spacing.sm },
-  chipContainer: { paddingHorizontal: spacing.lg },
+  chips: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    alignItems: 'center',
+  },
   list: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
   skeletonList: { paddingHorizontal: spacing.lg },
-  itemCard: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderRadius: borderRadius.md,
     padding: spacing.lg,
-    borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
   },
-  itemIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemEmoji: { fontSize: 20 },
-  itemContent: { flex: 1, marginLeft: spacing.md },
-  itemName: { ...typography.bodyBold },
-  itemMeta: { ...typography.caption, marginTop: spacing.xxs },
-  itemRight: { alignItems: 'flex-end' },
-  itemSpent: { ...typography.bodyBold },
-  countBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: borderRadius.round,
-    marginTop: spacing.xxs,
-  },
-  countText: { ...typography.small },
+  icon: { fontSize: 20 },
+  content: { flex: 1, marginLeft: spacing.md },
+  name: { ...typography.bodyBold },
+  meta: { ...typography.caption, marginTop: spacing.xxs },
+  description: { ...typography.small, marginTop: spacing.xxs },
+  right: { alignItems: 'flex-end', marginLeft: spacing.md },
+  total: { ...typography.bodyBold },
+  count: { ...typography.small, marginTop: spacing.xxs },
   swipeAction: {
+    width: 88,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
   },
-  swipeText: { color: '#FFFFFF', ...typography.captionBold },
-  // Modal styles
+  swipeText: {
+    ...typography.captionBold,
+    color: '#FFF',
+  },
   modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+    elevation: 1000,
   },
   modalContent: {
     borderTopLeftRadius: borderRadius.xxl,
     borderTopRightRadius: borderRadius.xxl,
     padding: spacing.xxl,
     paddingBottom: spacing.massive,
-    maxHeight: '85%',
+    maxHeight: '86%',
   },
   modalHandle: {
     width: 40,
@@ -478,8 +484,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.xl,
   },
-  modalTitle: { ...typography.title, marginBottom: spacing.xxl },
-  formInput: {
+  modalTitle: { ...typography.title, marginBottom: spacing.lg },
+  input: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: borderRadius.md,
@@ -488,10 +494,10 @@ const styles = StyleSheet.create({
     height: 52,
     marginBottom: spacing.lg,
   },
-  formInputText: { flex: 1, ...typography.body },
+  inputText: { flex: 1, ...typography.body },
   currencySymbol: { ...typography.bodyBold, marginRight: spacing.sm },
-  formLabel: { ...typography.captionBold, marginBottom: spacing.sm },
-  unitScroll: { maxHeight: 44, marginBottom: spacing.lg },
+  label: { ...typography.captionBold, marginBottom: spacing.sm },
+  unitRow: { maxHeight: 46, marginBottom: spacing.lg },
   unitChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -500,16 +506,16 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.round,
     borderWidth: 1,
     marginRight: spacing.sm,
-    gap: 4,
   },
+  unitEmoji: { marginRight: 6 },
   unitLabel: { ...typography.caption },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: spacing.md,
   },
-  closeButton: { alignItems: 'center', marginTop: spacing.lg },
-  closeText: { ...typography.body },
+  cancel: { alignItems: 'center', marginTop: spacing.lg },
+  cancelText: { ...typography.body },
 });
 
 export default ItemsScreen;

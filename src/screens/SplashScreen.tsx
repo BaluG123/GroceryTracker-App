@@ -1,20 +1,28 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+
+import BrandLogo from '../components/common/BrandLogo';
 import { AuthStackParamList } from '../navigation/types';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { continueAsGuest } from '../store/slices/authSlice';
+import { darkColors, lightColors } from '../theme/colors';
+import { borderRadius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { spacing } from '../theme/spacing';
 
 type Nav = StackNavigationProp<AuthStackParamList, 'Splash'>;
 
 const SplashScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const dispatch = useAppDispatch();
+  const theme = useAppSelector(state => state.settings.theme);
+  const colors = theme === 'dark' ? darkColors : lightColors;
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const taglineOpacity = useRef(new Animated.Value(0)).current;
-  const taglineTranslate = useRef(new Animated.Value(30)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslate = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.sequence([
@@ -32,74 +40,84 @@ const SplashScreen: React.FC = () => {
         }),
       ]),
       Animated.parallel([
-        Animated.timing(taglineOpacity, {
+        Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 500,
+          duration: 450,
           useNativeDriver: true,
         }),
-        Animated.timing(taglineTranslate, {
+        Animated.timing(contentTranslate, {
           toValue: 0,
-          duration: 500,
+          duration: 450,
           useNativeDriver: true,
         }),
       ]),
     ]).start();
-
-    const timer = setTimeout(() => {
-      navigation.replace('Login');
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [navigation, logoScale, logoOpacity, taglineOpacity, taglineTranslate]);
+  }, [contentOpacity, contentTranslate, logoOpacity, logoScale]);
 
   return (
     <LinearGradient
-      colors={['#0F0F1A', '#1A1A3E', '#0F0F1A']}
+      colors={
+        theme === 'dark'
+          ? ['#0B1220', '#111827', '#1F2937']
+          : ['#FFF8F1', '#F8FAFC', '#E0F2FE']
+      }
       style={styles.container}
     >
+      <View style={styles.glowA} />
+      <View style={styles.glowB} />
+
       <Animated.View
         style={[
           styles.logoContainer,
-          {
-            transform: [{ scale: logoScale }],
-            opacity: logoOpacity,
-          },
+          { transform: [{ scale: logoScale }], opacity: logoOpacity },
         ]}
       >
-        <LinearGradient
-          colors={['#6C63FF', '#3B82F6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoGradient}
-        >
-          <Text style={styles.logoIcon}>🛒</Text>
-        </LinearGradient>
-        <Text style={styles.appName}>Grocery{'\n'}Tracker</Text>
+        <BrandLogo subtitle="Daily money flow" color={colors.textPrimary} />
       </Animated.View>
 
       <Animated.View
-        style={{
-          opacity: taglineOpacity,
-          transform: [{ translateY: taglineTranslate }],
-        }}
+        style={[
+          styles.content,
+          {
+            opacity: contentOpacity,
+            transform: [{ translateY: contentTranslate }],
+          },
+        ]}
       >
-        <Text style={styles.tagline}>Track Every Rupee. Save Smarter.</Text>
-      </Animated.View>
+        <Text style={[styles.tagline, { color: colors.textPrimary }]}>
+          The expense app that feels calm, fast, and personal.
+        </Text>
+        <Text style={[styles.subline, { color: colors.textSecondary }]}>
+          Track groceries, rides, rent, coffee, subscriptions, and all your daily money movement in one place.
+        </Text>
 
-      <View style={styles.dots}>
-        {[0, 1, 2].map(i => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.dot,
-              {
-                opacity: logoOpacity,
-                backgroundColor: i === 1 ? '#6C63FF' : '#3B3B5E',
-              },
-            ]}
-          />
-        ))}
-      </View>
+        <View style={styles.pointList}>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• Guest mode keeps data safely on this device</Text>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• Account mode is ready for backend sync</Text>
+          <Text style={[styles.point, { color: colors.textPrimary }]}>• Reopening the app brings you straight back in</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: '#F97316' }]}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.primaryText}>Sign in</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.secondaryButton,
+            { backgroundColor: colors.card + 'B8', borderColor: colors.border },
+          ]}
+          onPress={() => navigation.navigate('Register')}
+        >
+          <Text style={[styles.secondaryText, { color: colors.textPrimary }]}>Create account</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => { dispatch(continueAsGuest()); }} style={styles.guestLink}>
+          <Text style={[styles.guestText, { color: colors.textSecondary }]}>Continue as guest</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </LinearGradient>
   );
 };
@@ -109,44 +127,79 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
-  },
-  logoGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  logoIcon: {
-    fontSize: 48,
-  },
-  appName: {
-    ...typography.hero,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1,
+  content: {
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
   },
   tagline: {
-    ...typography.body,
-    color: '#8B8BA7',
+    ...typography.heading,
     textAlign: 'center',
-    letterSpacing: 0.5,
   },
-  dots: {
-    flexDirection: 'row',
+  subline: {
+    ...typography.body,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  pointList: {
+    alignSelf: 'stretch',
+    marginTop: spacing.xl,
+    gap: spacing.sm,
+  },
+  point: {
+    ...typography.body,
+  },
+  primaryButton: {
+    width: '100%',
+    marginTop: spacing.xxl,
+    borderRadius: borderRadius.round,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  primaryText: {
+    ...typography.bodyBold,
+    color: '#FFF7ED',
+  },
+  secondaryButton: {
+    width: '100%',
+    marginTop: spacing.md,
+    borderRadius: borderRadius.round,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  secondaryText: {
+    ...typography.bodyBold,
+  },
+  guestLink: {
+    marginTop: spacing.lg,
+  },
+  guestText: {
+    ...typography.body,
+  },
+  glowA: {
     position: 'absolute',
-    bottom: 60,
-    gap: 8,
+    top: 90,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(249,115,22,0.10)',
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  glowB: {
+    position: 'absolute',
+    bottom: 90,
+    left: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(58,134,255,0.10)',
   },
 });
 

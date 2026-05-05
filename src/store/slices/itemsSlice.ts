@@ -1,6 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { itemsApi } from '../../api/api';
 import { GroceryItem, CreateItemPayload, UpdateItemPayload } from '../../types';
+import {
+  createGuestItem,
+  deleteGuestItem,
+  listGuestItems,
+  updateGuestItem,
+} from '../../services/guestExpenseStorage';
 
 interface ItemsState {
   items: GroceryItem[];
@@ -24,10 +30,13 @@ const initialState: ItemsState = {
 
 export const fetchItems = createAsyncThunk(
   'items/fetchAll',
-  async (page: number = 1, { rejectWithValue }) => {
+  async (_: number = 1, { rejectWithValue, getState }) => {
     try {
-      const response = await itemsApi.list(page);
-      return { ...response, page };
+      const state = getState() as any;
+      const response = state.auth.mode === 'guest'
+        ? { count: 0, next: null, previous: null, results: await listGuestItems() }
+        : await itemsApi.list();
+      return { ...response, page: 1 };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch items');
     }
@@ -36,9 +45,12 @@ export const fetchItems = createAsyncThunk(
 
 export const createItem = createAsyncThunk(
   'items/create',
-  async (payload: CreateItemPayload, { rejectWithValue }) => {
+  async (payload: CreateItemPayload, { rejectWithValue, getState }) => {
     try {
-      return await itemsApi.create(payload);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await createGuestItem(payload)
+        : await itemsApi.create(payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create item');
     }
@@ -49,10 +61,13 @@ export const updateItem = createAsyncThunk(
   'items/update',
   async (
     { id, payload }: { id: number; payload: UpdateItemPayload },
-    { rejectWithValue },
+    { rejectWithValue, getState },
   ) => {
     try {
-      return await itemsApi.update(id, payload);
+      const state = getState() as any;
+      return state.auth.mode === 'guest'
+        ? await updateGuestItem(id, payload)
+        : await itemsApi.update(id, payload);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update item');
     }
@@ -61,9 +76,14 @@ export const updateItem = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   'items/delete',
-  async (id: number, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue, getState }) => {
     try {
-      await itemsApi.delete(id);
+      const state = getState() as any;
+      if (state.auth.mode === 'guest') {
+        await deleteGuestItem(id);
+      } else {
+        await itemsApi.delete(id);
+      }
       return id;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete item');
@@ -127,7 +147,7 @@ const itemsSlice = createSlice({
       // Delete item
       .addCase(deleteItem.fulfilled, (state, action: PayloadAction<number>) => {
         state.items = state.items.filter((i: GroceryItem) => i.id !== action.payload);
-        state.totalCount -= 1;
+        state.totalCount = Math.max(0, state.totalCount - 1);
       });
   },
 });

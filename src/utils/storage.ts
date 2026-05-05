@@ -3,10 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEYS = {
   AUTH_TOKEN: '@grocery_auth_token',
   USER_DATA: '@grocery_user_data',
+  AUTH_MODE: '@grocery_auth_mode',
   THEME: '@grocery_theme',
   CURRENCY: '@grocery_currency',
   LANGUAGE: '@grocery_language',
   REMEMBER_ME: '@grocery_remember_me',
+  GUEST_EXPENSE_DATA: '@grocery_guest_expense_data',
 };
 
 // Token
@@ -34,6 +36,19 @@ export const getUserData = async (): Promise<object | null> => {
 
 export const removeUserData = async (): Promise<void> => {
   await AsyncStorage.removeItem(KEYS.USER_DATA);
+};
+
+// Auth mode
+export const saveAuthMode = async (mode: string): Promise<void> => {
+  await AsyncStorage.setItem(KEYS.AUTH_MODE, mode);
+};
+
+export const getAuthMode = async (): Promise<string | null> => {
+  return AsyncStorage.getItem(KEYS.AUTH_MODE);
+};
+
+export const removeAuthMode = async (): Promise<void> => {
+  await AsyncStorage.removeItem(KEYS.AUTH_MODE);
 };
 
 // Theme
@@ -77,6 +92,7 @@ export const getRememberMe = async (): Promise<boolean> => {
 export const clearAllStorage = async (): Promise<void> => {
   await AsyncStorage.removeItem(KEYS.AUTH_TOKEN);
   await AsyncStorage.removeItem(KEYS.USER_DATA);
+  await AsyncStorage.removeItem(KEYS.AUTH_MODE);
   await AsyncStorage.removeItem(KEYS.REMEMBER_ME);
 };
 

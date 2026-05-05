@@ -21,6 +21,7 @@ import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import AnimatedInput from '../components/common/AnimatedInput';
 import GradientButton from '../components/common/GradientButton';
+import BrandLogo from '../components/common/BrandLogo';
 
 type Nav = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -57,12 +58,12 @@ const LoginScreen: React.FC = () => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.emoji}>🛒</Text>
+            <BrandLogo color={colors.textPrimary} subtitle="Personal expense tracker" />
             <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {t('app_name')}
+              Welcome back
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {t('tagline')}
+              Sign in to keep your timeline synced and secure.
             </Text>
           </View>
 
@@ -113,6 +114,15 @@ const LoginScreen: React.FC = () => {
             />
 
             <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotLink}
+            >
+              <Text style={[styles.forgotText, { color: colors.primary }]}>
+                Forgot password?
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
               style={styles.switchLink}
             >
@@ -142,13 +152,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxxl,
   },
-  emoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
   title: {
     ...typography.heading,
     textAlign: 'center',
+    marginTop: spacing.lg,
   },
   subtitle: {
     ...typography.body,
@@ -180,6 +187,13 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     ...typography.caption,
     textAlign: 'center',
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.sm,
+  },
+  forgotText: {
+    ...typography.captionBold,
   },
   switchLink: {
     marginTop: spacing.xl,

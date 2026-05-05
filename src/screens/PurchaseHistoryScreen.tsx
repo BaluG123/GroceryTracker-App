@@ -19,7 +19,7 @@ import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 import { formatPrice } from '../utils/currency';
 import { getRelativeDay, formatTime, getMonthName, getCurrentMonth, getCurrentYear } from '../utils/date';
-import { unitTypeLabels } from '../utils/helpers';
+import { getUnitLabel } from '../utils/helpers';
 import CustomModal from '../components/common/CustomModal';
 import EmptyState from '../components/common/EmptyState';
 import { ListItemSkeleton } from '../components/common/SkeletonLoader';
@@ -106,7 +106,7 @@ const PurchaseHistoryScreen: React.FC = () => {
       Toast.show({
         type: 'success',
         text1: t('success'),
-        text2: 'Purchase deleted',
+        text2: 'Expense deleted',
       });
     }
   };
@@ -132,7 +132,7 @@ const PurchaseHistoryScreen: React.FC = () => {
             {item.item_name}
           </Text>
           <Text style={[styles.purchaseDetail, { color: colors.textSecondary }]}>
-            {item.quantity} {unitTypeLabels[item.item_unit_type]} × {formatPrice(item.price_per_unit, currencyCode)}
+            {item.quantity} {getUnitLabel(item.item_unit_type)} × {formatPrice(item.price_per_unit, currencyCode)}
           </Text>
           {item.notes ? (
             <Text
@@ -255,7 +255,7 @@ const PurchaseHistoryScreen: React.FC = () => {
             <EmptyState
               title={t('no_purchases')}
               description={t('no_purchases_desc')}
-              icon="🛒"
+              icon="🧾"
             />
           }
           refreshControl={
@@ -276,7 +276,7 @@ const PurchaseHistoryScreen: React.FC = () => {
         onClose={() => setDeleteModalVisible(false)}
         onConfirm={handleDelete}
         title={t('delete_purchase_title')}
-        message={t('delete_purchase_msg')}
+        message="Are you sure you want to delete this expense?"
         type="delete"
         confirmText={t('delete')}
         cancelText={t('cancel')}

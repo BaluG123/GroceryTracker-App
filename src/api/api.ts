@@ -2,7 +2,10 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { getToken } from '../utils/storage';
 import {
   AuthResponse,
+  ChangePasswordPayload,
+  ConfigureResetPayload,
   LoginPayload,
+  ForgotPasswordPayload,
   RegisterPayload,
   GroceryItem,
   CreateItemPayload,
@@ -78,12 +81,31 @@ export const authApi = {
     return data;
   },
 
-  logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout/');
+  logout: async (token?: string | null): Promise<void> => {
+    await api.post(
+      '/api/auth/logout/',
+      undefined,
+      token ? { headers: { Authorization: `Token ${token}` } } : undefined,
+    );
   },
 
   getProfile: async (): Promise<User> => {
     const { data } = await api.get('/api/auth/profile/');
+    return data;
+  },
+
+  forgotPassword: async (payload: ForgotPasswordPayload): Promise<{ message: string }> => {
+    const { data } = await api.post('/api/auth/forgot-password/', payload);
+    return data;
+  },
+
+  changePassword: async (payload: ChangePasswordPayload): Promise<{ message: string }> => {
+    const { data } = await api.post('/api/auth/change-password/', payload);
+    return data;
+  },
+
+  configureReset: async (payload: ConfigureResetPayload): Promise<{ message: string }> => {
+    const { data } = await api.post('/api/auth/configure-reset/', payload);
     return data;
   },
 };
@@ -92,8 +114,8 @@ export const authApi = {
 // Items API
 // ============================================================
 export const itemsApi = {
-  list: async (page: number = 1): Promise<PaginatedResponse<GroceryItem>> => {
-    const { data } = await api.get('/api/items/', { params: { page } });
+  list: async (): Promise<PaginatedResponse<GroceryItem>> => {
+    const { data } = await api.get('/api/expense-items/');
     // Handle non-paginated responses
     if (Array.isArray(data)) {
       return { count: data.length, next: null, previous: null, results: data };
@@ -102,22 +124,22 @@ export const itemsApi = {
   },
 
   getById: async (id: number): Promise<GroceryItem> => {
-    const { data } = await api.get(`/api/items/${id}/`);
+    const { data } = await api.get(`/api/expense-items/${id}/`);
     return data;
   },
 
   create: async (payload: CreateItemPayload): Promise<GroceryItem> => {
-    const { data } = await api.post('/api/items/', payload);
+    const { data } = await api.post('/api/expense-items/', payload);
     return data;
   },
 
   update: async (id: number, payload: UpdateItemPayload): Promise<GroceryItem> => {
-    const { data } = await api.patch(`/api/items/${id}/`, payload);
+    const { data } = await api.patch(`/api/expense-items/${id}/`, payload);
     return data;
   },
 
   delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/items/${id}/`);
+    await api.delete(`/api/expense-items/${id}/`);
   },
 };
 
@@ -135,9 +157,7 @@ export const purchasesApi = {
     if (filters.date_to) {params.date_to = filters.date_to;}
     if (filters.month) {params.month = filters.month;}
     if (filters.year) {params.year = filters.year;}
-    if (filters.page) {params.page = filters.page;}
-
-    const { data } = await api.get('/api/purchases/', { params });
+    const { data } = await api.get('/api/expenses/', { params });
     if (Array.isArray(data)) {
       return { count: data.length, next: null, previous: null, results: data };
     }
@@ -145,12 +165,12 @@ export const purchasesApi = {
   },
 
   getById: async (id: number): Promise<Purchase> => {
-    const { data } = await api.get(`/api/purchases/${id}/`);
+    const { data } = await api.get(`/api/expenses/${id}/`);
     return data;
   },
 
   create: async (payload: CreatePurchasePayload): Promise<Purchase> => {
-    const { data } = await api.post('/api/purchases/', payload);
+    const { data } = await api.post('/api/expenses/', payload);
     return data;
   },
 
@@ -158,12 +178,12 @@ export const purchasesApi = {
     id: number,
     payload: UpdatePurchasePayload,
   ): Promise<Purchase> => {
-    const { data } = await api.patch(`/api/purchases/${id}/`, payload);
+    const { data } = await api.patch(`/api/expenses/${id}/`, payload);
     return data;
   },
 
   delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/purchases/${id}/`);
+    await api.delete(`/api/expenses/${id}/`);
   },
 };
 

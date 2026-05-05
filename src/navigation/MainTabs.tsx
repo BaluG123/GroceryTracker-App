@@ -1,7 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet, TouchableOpacity, Text } from 'react-native';
+import {
+  BottomTabBarButtonProps,
+  createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import LinearGradient from 'react-native-linear-gradient';
 import { MainTabParamList } from './types';
@@ -34,18 +38,26 @@ const TAB_ICONS: Record<string, string> = {
   Profile: '👤',
 };
 
-const CenterTabButton: React.FC<{ onPress: () => void }> = ({ onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.centerButton}>
-    <LinearGradient
-      colors={['#6C63FF', '#3B82F6']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.centerGradient}
+const CenterTabButton = (_props: BottomTabBarButtonProps): React.ReactElement => {
+  const navigation = useNavigation<any>();
+
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('AddPurchase')}
+      activeOpacity={0.8}
+      style={styles.centerButton}
     >
-      <Text style={styles.centerIcon}>+</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-);
+      <LinearGradient
+        colors={['#6C63FF', '#3B82F6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.centerGradient}
+      >
+        <Text style={styles.centerIcon}>+</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
 
 const MainTabs: React.FC = () => {
   const { t } = useTranslation();
@@ -100,9 +112,7 @@ const MainTabs: React.FC = () => {
         component={AddPurchaseScreen}
         options={{
           tabBarLabel: '',
-          tabBarButton: (props) => (
-            <CenterTabButton onPress={() => props.onPress?.(undefined as any)} />
-          ),
+          tabBarButton: CenterTabButton,
         }}
       />
       <Tab.Screen
